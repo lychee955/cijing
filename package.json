@@ -1,0 +1,40 @@
+{
+  "name": "momo-desktop",
+  "version": "0.2.0",
+  "private": true,
+  "description": "墨墨背单词桌面添加工具 · M2",
+  "main": "./out/main/index.js",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "postinstall": "node node_modules/electron/install.js && electron-rebuild -f -w better-sqlite3",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "dev": "electron-vite dev",
+    "start": "electron-vite preview",
+    "typecheck": "vue-tsc --noEmit",
+    "build": "npm run typecheck && electron-vite build",
+    "test": "node scripts/test.cjs",
+    "test:e2e": "npm run build && playwright test",
+    "check": "npm run test && npm run build"
+  },
+  "dependencies": {
+    "better-sqlite3": "13.0.3",
+    "pinia": "4.0.3",
+    "vue": "3.5.42",
+    "zod": "4.6.2"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "4.2.0",
+    "@playwright/test": "1.63.0",
+    "@types/better-sqlite3": "9.6.0",
+    "@types/node": "24.13.4",
+    "@vitejs/plugin-vue": "6.0.8",
+    "electron": "44.3.0",
+    "electron-vite": "5.0.0",
+    "typescript": "5.9.3",
+    "vite": "7.3.6",
+    "vitest": "5.0.0",
+    "vue-tsc": "3.3.11"
+  }
+}

@@ -1,0 +1,10 @@
+node_modules/
+out/
+dist/
+.tools/
+test-results/
+playwright-report/
+coverage/
+*.log
+.env*
+!.env.example
