@@ -6,6 +6,8 @@ export const channels = {
   credentialSave: 'credentials:save',
   credentialClear: 'credentials:clear',
   credentialCopy: 'credentials:copy',
+  credentialReveal: 'credentials:reveal',
+  credentialValidate: 'credentials:validate',
   lookup: 'vocabulary:lookup',
   add: 'study:add',
   confirm: 'study:confirm',
@@ -25,6 +27,8 @@ export interface DesktopApi {
     save(token: string): Promise<Result<void>>
     clear(): Promise<Result<void>>
     copy(): Promise<Result<void>>
+    reveal(): Promise<Result<string>>
+    validate(): Promise<Result<void>>
   }
   vocabulary: { lookup(spelling: string): Promise<Result<Vocabulary[]>> }
   study: {

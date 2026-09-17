@@ -7,6 +7,7 @@ import type { VocabularyService } from './vocabulary-service'
 
 export class SessionService {
   private activeRequests = 0
+  private verifiedProfile: string | null = null
   recovering = false
   constructor(private readonly credentials: CredentialStore, private readonly database: OperationsDatabase,
     private readonly vocabulary: VocabularyService, private readonly study: StudyService,
@@ -16,15 +17,24 @@ export class SessionService {
   status(): CredentialStatus {
     const status = this.credentials.status()
     const id = this.database.activeProfileId()
-    return { ...status, invalid: !!id && this.database.isInvalid(id) }
+    const invalid = !!id && this.database.isInvalid(id)
+    return { ...status, invalid, verified: !!id && id === this.verifiedProfile && status.available && !invalid }
   }
   save(token: string): void {
     this.change(() => this.credentials.save(token))
   }
   clear(): void { this.change(() => this.credentials.clear()) }
+  async validate(): Promise<void> {
+    this.verifiedProfile = null
+    await this.request(async credentials => {
+      await this.vocabulary.validate(credentials)
+      this.verifiedProfile = credentials.profileId
+    })
+  }
   private change(action: () => void): void {
     if (this.activeRequests > 0) throw new ClientError('BUSY')
     action()
+    this.verifiedProfile = null
     this.initialize()
     this.vocabulary.clear()
     this.study.clear()

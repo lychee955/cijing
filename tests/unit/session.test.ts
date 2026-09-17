@@ -21,13 +21,46 @@ function setup() {
   })
   const client = new MaimemoClient(async () => { throw new Error('No real network') })
   const add = vi.spyOn(client, 'add').mockResolvedValue(1), contains = vi.spyOn(client, 'contains').mockResolvedValue(false)
-  const vocabulary = new VocabularyService(client), study = new StudyService(client, async () => {}, db)
+  const vocabulary = new VocabularyService(client, { lookup: async () => ({ interpretations: [] }) }), study = new StudyService(client, async () => {}, db)
   const session = new SessionService(credentials, db, vocabulary, study)
   session.save('dummy-token')
-  return { credentials, db, client, add, contains, session }
+  return { credentials, db, client, vocabulary, add, contains, session }
 }
 
 describe('credential lifecycle and recovery', () => {
+  it('validates with a read without changing profiles, populating candidates or adding history', async () => {
+    const { session, client, credentials, vocabulary, db, add } = setup()
+    const lookup = vi.spyOn(client, 'lookup').mockResolvedValue([{ id: 'v1', spelling: 'apple' }])
+    const profile = credentials.snapshot().profileId
+    await session.validate()
+    expect(lookup).toHaveBeenCalledWith('dummy-token', 'apple')
+    expect(session.status()).toMatchObject({ verified: true, invalid: false })
+    expect(credentials.snapshot().profileId).toBe(profile)
+    expect(() => vocabulary.get(profile, 'v1')).toThrow()
+    expect(db.list({ scope: 'all', offset: 0, limit: 10, pendingOnly: false }).total).toBe(0)
+    expect(add).not.toHaveBeenCalled()
+    session.save('replacement')
+    expect(session.status().verified).toBe(false)
+  })
+  it.each(['AUTH', 'NETWORK', 'PERMISSION', 'RATE_LIMIT'] as const)('does not mark %s as verified; only authentication failure pauses the profile', async code => {
+    const { session, client } = setup()
+    const lookup = vi.spyOn(client, 'lookup').mockResolvedValue([])
+    await session.validate()
+    lookup.mockRejectedValue(new ClientError(code))
+    await expect(session.validate()).rejects.toMatchObject({ code })
+    expect(session.status()).toMatchObject({ verified: false, invalid: code === 'AUTH' })
+  })
+  it('blocks replacement until validation completes', async () => {
+    const { session, client } = setup()
+    let finish!: () => void
+    vi.spyOn(client, 'lookup').mockImplementation(() => new Promise(resolve => { finish = () => resolve([]) }))
+    const pending = session.validate()
+    expect(() => session.save('replacement')).toThrow()
+    expect(() => session.clear()).toThrow()
+    finish(); await pending
+    session.clear()
+    expect(session.status()).toMatchObject({ configured: false, verified: false })
+  })
   it('blocks credential replacement while an operation is running', async () => {
     const { session, credentials } = setup()
     let finish!: () => void

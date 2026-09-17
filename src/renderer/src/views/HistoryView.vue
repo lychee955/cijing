@@ -29,7 +29,7 @@ onUnmounted(() => unsubscribe?.())
         <div class="history-title"><strong>{{ entry.spelling }}</strong><span class="status-pill" :class="entry.state">{{ labels[entry.state] }}</span><span v-if="!entry.activeProfile" class="subtle">旧配置 · 只读</span></div>
         <p class="history-message">{{ entry.message }}</p>
         <div class="history-meta"><time :datetime="entry.createdAt">{{ date(entry.createdAt) }}</time>
-          <button v-if="entry.activeProfile" :disabled="!!history.confirming || entry.state === 'submitting'" @click="history.confirm(entry.id)">{{ history.confirming === entry.id ? '确认中…' : '确认学习记录' }}</button></div>
+          <button v-if="entry.activeProfile" :disabled="!!history.confirming || entry.state === 'submitting'" @click="history.confirm(entry.id)">{{ history.confirming === entry.id ? '查询中…' : entry.confirmedAt && ['added', 'present'].includes(entry.state) ? '重新查询' : '确认学习记录' }}</button></div>
         <p v-if="entry.confirmedAt" class="subtle confirmed-at">记录确认于 {{ date(entry.confirmedAt) }}</p>
       </li>
     </ol>

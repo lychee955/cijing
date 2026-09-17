@@ -109,9 +109,9 @@ describe('add outcome safety', () => {
   it('requires a query result from the same credential profile', async () => {
     const { client } = setup()
     vi.spyOn(client, 'lookup').mockResolvedValue([word])
-    const vocabulary = new VocabularyService(client)
+    const vocabulary = new VocabularyService(client, { lookup: async () => ({ interpretations: [] }) })
     await vocabulary.lookup(credentials, 'apple')
-    expect(vocabulary.get('profile1', 'v1')).toEqual(word)
+    expect(vocabulary.get('profile1', 'v1')).toMatchObject(word)
     expect(() => vocabulary.get('profile2', 'v1')).toThrow()
     expect(() => vocabulary.get('profile1', 'invented')).toThrow()
     vocabulary.clear()

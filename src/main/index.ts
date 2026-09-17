@@ -2,6 +2,7 @@ import { app, dialog, globalShortcut, net, safeStorage, session, type Tray } fro
 import { join } from 'node:path'
 import { mkdirSync } from 'node:fs'
 import { MaimemoClient } from './maimemo/client'
+import { UapiDictionary } from './dictionary/uapi'
 import { CredentialStore } from './storage/credential-store'
 import { OperationsDatabase } from './storage/database'
 import { SettingsStore } from './storage/settings'
@@ -34,7 +35,7 @@ else {
     const credentials = new CredentialStore(join(app.getPath('userData'), 'credentials.v1.json'), safeStorage)
     const client = new MaimemoClient((url, init) => net.fetch(url, init), undefined, undefined,
       entry => console.info('[api]', JSON.stringify(entry)))
-    const vocabulary = new VocabularyService(client)
+    const vocabulary = new VocabularyService(client, new UapiDictionary((url, init) => net.fetch(url, init)))
     const study = new StudyService(client, undefined, database)
     const changed = () => {
       if (windows && !windows.window.isDestroyed()) windows.window.webContents.send(channels.changed)

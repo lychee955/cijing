@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { CredentialStatus } from '../../../shared/models'
 import { useSearchStore } from '../stores/search'
 import { useDesktopStore } from '../stores/desktop'
@@ -40,9 +40,58 @@ function captureShortcut(event: KeyboardEvent): void {
 }
 const status = ref<CredentialStatus>({ configured: false, available: false })
 const token = ref('')
+const editing = ref(false)
+const isEditing = computed(() => !status.value.configured || editing.value)
+const visible = ref(false)
+const revealedToken = ref('')
+const revealing = ref(false)
+let revealSequence = 0
+function conceal(): void {
+  revealSequence++
+  visible.value = false
+  revealedToken.value = ''
+  revealing.value = false
+}
+function editToken(): void { conceal(); token.value = ''; editing.value = true; message.value = '' }
+function cancelEdit(): void { conceal(); token.value = ''; editing.value = false; message.value = '' }
+async function toggleVisibility(): Promise<void> {
+  if (visible.value) { conceal(); return }
+  if (isEditing.value) { visible.value = true; return }
+  if (revealing.value) return
+  const request = ++revealSequence
+  revealing.value = true
+  try {
+    const result = await window.desktop.credentials.reveal()
+    if (request !== revealSequence) return
+    if (result.ok) { revealedToken.value = result.data; visible.value = true }
+    else message.value = result.error.message
+  } catch { if (request === revealSequence) message.value = '暂时无法显示 Token，请重试。' }
+  finally { if (request === revealSequence) revealing.value = false }
+}
 const message = ref('')
 const busy = ref(false)
 const loaded = ref(false)
+const validating = ref(false)
+async function validateToken(saved = false): Promise<void> {
+  validating.value = true
+  message.value = saved ? 'Token 已加密保存，正在验证…' : '正在验证 Token…'
+  try {
+    const result = await window.desktop.credentials.validate()
+    message.value = result.ok ? (saved ? 'Token 已加密保存，验证通过。' : 'Token 验证通过。')
+      : `${saved ? 'Token 已保存。' : ''}${result.error.code === 'AUTH' || result.error.code === 'PERMISSION' ? '验证失败：' : '暂时无法完成验证：'}${result.error.message}`
+  } catch { message.value = '暂时无法完成验证，请稍后重试。' }
+  finally {
+    validating.value = false
+    await Promise.all([refresh(), desktop.refresh()])
+  }
+}
+async function revalidate(): Promise<void> {
+  if (busy.value) return
+  busy.value = true
+  try { await validateToken() }
+  catch { message.value = '无法读取凭证状态，请稍后重试。' }
+  finally { busy.value = false }
+}
 async function refresh(): Promise<void> {
   const result = await window.desktop.credentials.status()
   if (result.ok) status.value = result.data
@@ -56,34 +105,64 @@ async function act(action: 'save' | 'clear' | 'copy'): Promise<void> {
     const result = action === 'save' ? await window.desktop.credentials.save(token.value) : await window.desktop.credentials[action]()
     if (result.ok) {
       message.value = action === 'save' ? 'Token 已加密保存。' : action === 'clear' ? 'Token 已清除。' : 'Token 已复制到系统剪贴板。'
-      if (action !== 'copy') { token.value = ''; search.invalidate(); await refresh() }
+      if (action !== 'copy') {
+        conceal(); token.value = ''; editing.value = false; search.invalidate()
+        await Promise.all([refresh(), desktop.refresh()])
+        if (action === 'save') await validateToken(true)
+      }
     } else message.value = result.error.message
   } catch { message.value = '无法连接桌面服务，请重启应用。' }
   finally { busy.value = false }
 }
 onMounted(() => {
+  window.addEventListener('blur', conceal)
   void refresh().catch(() => { message.value = '无法读取凭证状态。' })
   void desktop.refresh().then(() => { if (desktop.status) preferences.value = { ...desktop.status.settings } })
 })
+onUnmounted(() => { conceal(); token.value = ''; window.removeEventListener('blur', conceal) })
 </script>
 
 <template>
-  <section>
-    <div class="eyebrow">连接你的学习规划</div><h1>个人 Token</h1>
-    <p class="intro">在墨墨 App 的「我的 → 更多设置 → 实验功能 → 开放 API」获取。</p>
-    <div class="settings-card">
-      <div class="section-label">凭证状态<span>{{ !loaded ? '读取中…' : status.configured ? '已保存 · ****' : '尚未配置' }}</span></div>
+  <section class="settings-page">
+    <div class="eyebrow">让查词更顺手</div><h1>设置</h1>
+    <p class="intro">管理账号连接和桌面偏好。</p>
+    <div class="settings-card account-card">
+      <div class="account-heading">
+        <span class="account-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5h10a2 2 0 0 1 2 2v13H8a4 4 0 0 1-4-4V5a2 2 0 0 1 2-2h2v13H6a2 2 0 0 0 0 4M12 9h4m-4 4h4" /></svg></span>
+        <div><h2>墨墨账号</h2><p>连接学习规划，收录遇见的生词。</p></div>
+        <span class="connection-badge" :class="{ connected: status.configured, invalid: status.invalid }"><i aria-hidden="true"></i>{{ !loaded ? '读取中' : validating ? '验证中' : status.invalid ? '需更新' : status.verified ? '已验证' : status.configured ? '已配置' : '尚未配置' }}</span>
+      </div>
       <p v-if="loaded && !status.available" class="notice error">系统加密不可用或凭证无法解密，请检查密钥存储；可清除旧凭证后重新保存。</p>
-      <label for="token">{{ status.configured ? '替换 Token' : '输入 Token' }}</label>
-      <input id="token" v-model="token" type="password" :placeholder="status.configured ? '****' : '粘贴个人 Token'"
-        maxlength="8192" autocomplete="off" spellcheck="false" :disabled="busy || search.submitting" @keydown.enter="!$event.isComposing && token.trim() && act('save')" />
-      <p class="subtle">Token 经系统加密保存在本机。替换后创建新配置，旧历史保留为只读，不再自动确认旧任务。</p>
-      <div class="actions">
-        <button class="primary" :disabled="busy || !token.trim() || search.submitting" @click="act('save')">保存 Token</button>
-        <button :disabled="busy || !status.configured || !status.available" @click="act('copy')">复制 Token</button>
-        <button class="danger" :disabled="busy || !status.configured || search.submitting" @click="act('clear')">清除</button>
+      <label for="token">{{ isEditing ? status.configured ? '替换 Token' : '输入 Token' : '个人 Token' }}</label>
+      <div class="token-field" :class="{ masked: !visible && !isEditing }">
+        <input id="token" :value="isEditing ? token : visible ? revealedToken : '••••••••••••••••••••••••'"
+          :type="visible ? 'text' : 'password'" :readonly="!isEditing" placeholder="粘贴你的个人 Token"
+          maxlength="8192" autocomplete="off" spellcheck="false" :disabled="!loaded || busy || search.submitting"
+          @input="isEditing && (token = ($event.target as HTMLInputElement).value)"
+          @keydown.enter="isEditing && !$event.isComposing && token.trim() && act('save')" />
+        <div class="token-tools">
+          <button class="icon-button" :aria-label="visible ? '隐藏 Token' : '显示 Token'" :title="visible ? '隐藏 Token' : '显示 Token'" :aria-pressed="visible"
+            :disabled="!loaded || busy || revealing || (!isEditing && !status.available)" @click="toggleVisibility()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /><path v-if="visible" d="m3 3 18 18" /></svg>
+          </button>
+          <button v-if="!isEditing" class="icon-button" aria-label="复制 Token" title="复制 Token" :disabled="busy || !status.available" @click="act('copy')">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" /></svg>
+          </button>
+        </div>
+      </div>
+      <p class="token-caption"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>{{ isEditing ? '仅保存在本机，保存时自动加密。' : '已加密保存，点击小眼睛查看明文。' }}</p>
+      <p v-if="editing && status.configured" class="subtle">更换后保留旧历史，新操作使用新配置。</p>
+      <div class="account-actions">
+        <template v-if="isEditing">
+          <button class="primary" :disabled="busy || !token.trim() || search.submitting" @click="act('save')">保存 Token</button>
+          <button v-if="status.configured" :disabled="busy" @click="cancelEdit()">取消</button>
+        </template>
+        <button v-else :disabled="busy || search.submitting" @click="editToken()">更换 Token</button>
+        <button v-if="!isEditing" :disabled="busy || !status.available || search.submitting" @click="revalidate()">{{ validating ? '验证中…' : '验证 Token' }}</button>
+        <button v-if="status.configured" class="clear-token" :disabled="busy || search.submitting" @click="act('clear')">清除</button>
       </div>
       <p v-if="message" class="notice" role="status">{{ message }}</p>
+      <details class="token-help"><summary>如何获取 Token？</summary><p>打开墨墨 App，在「我的 → 更多设置 → 实验功能 → 开放 API」获取个人 Token。</p></details>
     </div>
     <p class="subtle setup-note">请在手机 App 开启自动同步。学习记录可能延迟，结果待确认时应先查询状态。</p>
     <div class="settings-card desktop-settings">

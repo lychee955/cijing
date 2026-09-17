@@ -43,6 +43,8 @@ export function registerIpc(window: BrowserWindow, allowedUrl: string, credentia
   handle(channels.credentialSave, z.tuple([tokenSchema]), token => session.save(token))
   handle(channels.credentialClear, noArgs, () => session.clear())
   handle(channels.credentialCopy, noArgs, () => { clipboard.writeText(credentials.snapshot().token) })
+  handle(channels.credentialReveal, noArgs, () => credentials.snapshot().token)
+  handle(channels.credentialValidate, noArgs, () => session.validate())
   handle(channels.lookup, z.tuple([spellingSchema]), spelling => session.request(snapshot => vocabulary.lookup(snapshot, spelling)))
   handle(channels.add, z.tuple([wordIdSchema]), id => session.request(snapshot => study.add(snapshot, vocabulary.get(snapshot.profileId, id))))
   handle(channels.confirm, z.tuple([wordIdSchema]), id => session.request(snapshot => study.confirm(snapshot, vocabulary.get(snapshot.profileId, id))))

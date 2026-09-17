@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ClientError } from './errors'
-import { addSchema, lookupSchema, recordsSchema } from './schemas'
+import { addSchema, interpretationsSchema, lookupSchema, recordsSchema } from './schemas'
 import { RateLimiter } from './rate-limiter'
 
 const BASE_URL = 'https://open.maimemo.com/open/api/v1/memo/'
@@ -24,6 +24,12 @@ export class MaimemoClient {
 
   async add(token: string, id: string): Promise<number> {
     return (await this.request('study/add_words', token, { words: [{ id }], advance: false }, addSchema, true)).added_count
+  }
+
+  async interpretations(token: string, id: string): Promise<string[]> {
+    const result = await this.request(`interpretations?${new URLSearchParams({ voc_id: id })}`,
+      token, undefined, interpretationsSchema, false)
+    return [...new Set(result.interpretations.map(item => item.interpretation.trim()).filter(Boolean))]
   }
 
   async contains(token: string, id: string): Promise<boolean> {
@@ -54,7 +60,7 @@ export class MaimemoClient {
     let errorCode: string | undefined
     try {
       const response = await this.fetcher(new URL(path, BASE_URL).href, {
-        method: 'POST', redirect: 'error', credentials: 'omit', cache: 'no-store',
+        method: body === undefined ? 'GET' : 'POST', redirect: 'error', credentials: 'omit', cache: 'no-store',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify(body), signal: controller.signal
       })
@@ -87,7 +93,7 @@ export class MaimemoClient {
       throw safeError
     } finally {
       clearTimeout(timer)
-      this.log({ operation: path, durationMs: Date.now() - started, status, errorCode })
+      this.log({ operation: path.split('?')[0]!, durationMs: Date.now() - started, status, errorCode })
     }
   }
 

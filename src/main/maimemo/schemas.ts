@@ -5,6 +5,9 @@ export const spellingSchema = z.string().trim().min(1).max(200).refine(v => !/[\
 export const tokenSchema = z.string().trim().min(1).max(8192).regex(/^[\x21-\x7e]+$/)
 export const vocabularySchema = z.object({ id: wordIdSchema, spelling: z.string().min(1).max(200) })
 export const lookupSchema = z.object({ voc: z.array(vocabularySchema).max(1000) })
+export const interpretationsSchema = z.object({
+  interpretations: z.array(z.object({ interpretation: z.string().max(100_000) })).max(1000)
+})
 export const addSchema = z.object({ added_count: z.number().int().min(0).max(1) })
 export const recordsSchema = z.object({
   records: z.array(z.object({ voc_id: wordIdSchema })).max(1000),

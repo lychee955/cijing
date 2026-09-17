@@ -1,14 +1,28 @@
 import type { Vocabulary } from '../../shared/models'
 import { ClientError } from '../maimemo/errors'
+import { DictionaryError, type Dictionary } from '../dictionary/uapi'
 import type { MaimemoClient } from '../maimemo/client'
 import type { CredentialSnapshot } from '../storage/credential-store'
 
 export class VocabularyService {
   private readonly known = new Map<string, Map<string, Vocabulary>>()
-  constructor(private readonly client: MaimemoClient) {}
+  constructor(private readonly client: MaimemoClient, private readonly dictionary: Dictionary) {}
+
+  async validate(credentials: CredentialSnapshot): Promise<void> {
+    // A read-only probe; do not populate selectable words or create study history.
+    await this.client.lookup(credentials.token, 'apple')
+  }
 
   async lookup(credentials: CredentialSnapshot, spelling: string): Promise<Vocabulary[]> {
-    const words = await this.client.lookup(credentials.token, spelling)
+    const matches = await this.client.lookup(credentials.token, spelling)
+    const words: Vocabulary[] = []
+    for (const word of matches) {
+      try {
+        words.push({ ...word, ...await this.dictionary.lookup(word.spelling) })
+      } catch (error) {
+        words.push({ ...word, interpretationError: error instanceof DictionaryError ? error.message : '词典查询失败，请稍后重试。' })
+      }
+    }
     const entries = this.known.get(credentials.profileId) ?? new Map<string, Vocabulary>()
     for (const word of words) entries.set(word.id, word)
     while (entries.size > 2000) entries.delete(entries.keys().next().value!)

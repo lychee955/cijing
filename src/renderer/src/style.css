@@ -30,7 +30,14 @@ h1 { font-size: 28px; font-weight: 650; letter-spacing: -.5px; margin: 0 0 12px;
 .word-card.selected { border-color: #8ca77f; background: #f0f4e9; }
 input[type=radio] { accent-color: #345b43; }
 .word-spelling { font-size: 23px; overflow-wrap: anywhere; }
-.word-label { margin-left: auto; font-size: 11px; color: #819176; white-space: nowrap; }
+.word-details { flex: 1; min-width: 0; }
+.word-definitions { display: block; }
+.phonetics { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 6px; }
+.pronunciation { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px; font-size: 13px; background: transparent; border-color: transparent; color: inherit; }
+.pronunciation.playing { color: #497046; background: #e3efdf; }
+.speaker-icon { width: 17px; height: 17px; flex-shrink: 0; }
+.audio-error { color: #984d38; }
+.word-definition { display: block; margin-top: 6px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
 .subtle { color: #85907f; font-size: 12px; line-height: 1.8; }
 .actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
 .notice { padding: 13px 15px; background: #e9ede2; border-radius: 9px; font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }
@@ -71,7 +78,38 @@ select:focus-visible { outline: 3px solid #9fbf9a; outline-offset: 3px; }
 h2 { font-size: 18px; margin: 0 0 15px; }
 .shortcut-row { display: flex; gap: 10px; }
 .shortcut-row input { min-width: 0; flex: 1; }
+.settings-page { --account-muted: #728074; --account-border: #dce3d8; --account-tint: #f4f6f1; --account-accent: #426b4c; --account-warning: #a3682f; --account-danger: #985443; }
+.account-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+.account-card svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.account-icon { display: grid; place-items: center; width: 42px; height: 42px; flex: none; border-radius: 12px; background: var(--account-tint); color: var(--account-accent); }
+.account-icon svg { width: 23px; height: 23px; }
+.account-heading h2 { margin: 0 0 5px; font-size: 17px; }
+.account-heading p { margin: 0; font-size: 12px; line-height: 1.6; color: var(--account-muted); }
+.connection-badge { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; padding: 5px 9px; border-radius: 20px; font-size: 11px; white-space: nowrap; color: var(--account-muted); background: var(--account-tint); }
+.connection-badge i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.connection-badge.connected { color: var(--account-accent); }
+.connection-badge.invalid { color: var(--account-warning); }
+.account-card label { margin: 0 0 9px; font-weight: 600; font-size: 12px; }
+.token-field { display: flex; align-items: center; gap: 6px; padding: 5px 7px 5px 14px; min-height: 48px; border: 1px solid var(--account-border); border-radius: 10px; background: var(--account-tint); }
+.token-field:focus-within { border-color: var(--account-accent); }
+.account-card .token-field input { flex: 1; min-width: 0; width: 0; padding: 8px 0; border: 0; border-radius: 0; background: transparent; font-family: Consolas, 'Courier New', monospace; font-size: 14px; }
+.token-field input:focus-visible { outline: none; }
+.token-field.masked input { letter-spacing: 2px; color: var(--account-muted); }
+.token-tools { display: flex; gap: 2px; flex: none; }
+.settings-page .account-card .icon-button { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--account-muted); }
+.settings-page .account-card .icon-button:hover:enabled { background: var(--account-border); color: var(--account-accent); }
+.token-caption { display: flex; gap: 6px; align-items: center; margin: 11px 0 0; font-size: 11px; line-height: 1.6; color: var(--account-muted); }
+.token-caption svg { width: 13px; height: 13px; }
+.account-actions { display: flex; align-items: center; gap: 8px; margin-top: 22px; }
+.account-actions button { font-size: 12px; padding: 8px 13px; }
+.settings-page .account-card .clear-token { margin-left: auto; border-color: transparent; background: transparent; color: var(--account-danger); }
+.settings-page .account-card .clear-token:hover:enabled { background: var(--account-tint); }
+.token-help { margin-top: 22px; border-top: 1px solid var(--account-border); padding-top: 15px; font-size: 12px; color: var(--account-muted); }
+.token-help summary { cursor: pointer; width: fit-content; }
+.token-help summary:focus-visible { outline: 3px solid #9fbf9a; outline-offset: 4px; border-radius: 2px; }
+.token-help p { line-height: 1.8; margin: 10px 0 0; }
 :root[data-theme=dark] { color-scheme: dark; color: #dae4d8; background: #202720; }
+:root[data-theme=dark] .settings-page { --account-muted: #a4b29e; --account-border: #475544; --account-tint: #252e25; --account-accent: #a3c69b; --account-warning: #e1b278; --account-danger: #e0a18d; }
 :root[data-theme=dark] :is(.settings-card,.word-card,.history-card,.search-box,button,select) { background: #2c352c; color: #dae4d8; border-color: #475544; }
 :root[data-theme=dark] input { background: transparent; color: #dae4d8; }
 :root[data-theme=dark] :is(.primary,nav button.active,.word-card.selected) { background: #456143; color: #fff; }
@@ -79,6 +117,7 @@ h2 { font-size: 18px; margin: 0 0 15px; }
 :root[data-theme=dark] .notice { color: #293d34; }
 :root[data-theme=dark] .status-pill { color: #293d34; }
 @media (prefers-color-scheme: dark) {
+  :root[data-theme=system] .settings-page { --account-muted: #a4b29e; --account-border: #475544; --account-tint: #252e25; --account-accent: #a3c69b; --account-warning: #e1b278; --account-danger: #e0a18d; }
   :root[data-theme=system] { color-scheme: dark; color: #dae4d8; background: #202720; }
   :root[data-theme=system] :is(.settings-card,.word-card,.history-card,.search-box,button,select) { background: #2c352c; color: #dae4d8; border-color: #475544; }
   :root[data-theme=system] input { background: transparent; color: #dae4d8; }

@@ -15,6 +15,15 @@ function setup(responses: Array<Response | Error>) {
 }
 
 describe('official API adapter', () => {
+  it('gets definitions by word id without a request body and removes empty duplicates', async () => {
+    const { client, fetcher } = setup([json({ data: { interpretations: [
+      { interpretation: ' n. 苹果 ' }, { interpretation: '' }, { interpretation: 'n. 苹果' }, { interpretation: 'n. 苹果树' }
+    ] } }), json({ interpretations: [] })])
+    expect(await client.interpretations('secret', 'v1')).toEqual(['n. 苹果', 'n. 苹果树'])
+    expect(fetcher.mock.calls[0]![0]).toBe('https://open.maimemo.com/open/api/v1/memo/interpretations?voc_id=v1')
+    expect(fetcher.mock.calls[0]![1]).toMatchObject({ method: 'GET', body: undefined })
+    expect(await client.interpretations('secret', 'v2')).toEqual([])
+  })
   it('queries one spelling as a list and accepts envelope/multiple matches', async () => {
     const { client, fetcher } = setup([json({ success: true, data: { voc: [word, { id: 'v2', spelling: 'Apple' }] }, errors: [] })])
     expect(await client.lookup('secret', 'apple & pear')).toHaveLength(2)

@@ -6,7 +6,9 @@ const api: DesktopApi = {
     status: () => ipcRenderer.invoke(channels.credentialStatus),
     save: token => ipcRenderer.invoke(channels.credentialSave, token),
     clear: () => ipcRenderer.invoke(channels.credentialClear),
-    copy: () => ipcRenderer.invoke(channels.credentialCopy)
+    copy: () => ipcRenderer.invoke(channels.credentialCopy),
+    reveal: () => ipcRenderer.invoke(channels.credentialReveal),
+    validate: () => ipcRenderer.invoke(channels.credentialValidate)
   },
   vocabulary: { lookup: spelling => ipcRenderer.invoke(channels.lookup, spelling) },
   study: {

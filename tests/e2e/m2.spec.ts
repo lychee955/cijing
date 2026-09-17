@@ -41,6 +41,13 @@ test('history persists after exit and old configurations are read-only', async (
   await expect(page.getByRole('status')).toHaveText('已加入学习规划')
   await page.getByRole('button', { name: '历史', exact: true }).click()
   await expect(page.getByText('本次新增', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '确认学习记录', exact: true })).toBeVisible()
+  await setMode('present')
+  await page.getByRole('button', { name: '确认学习记录', exact: true }).click()
+  await expect(page.getByRole('button', { name: '重新查询', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '重新查询', exact: true }).click()
+  await expect(page.getByRole('button', { name: '重新查询', exact: true })).toBeEnabled()
+  expect((await calls()).filter(call => call.path.endsWith('/add_words'))).toHaveLength(1)
   await page.screenshot({ path: 'test-results/m2-history.png', fullPage: true })
   await app.close(); await launch()
   const result = await history()
@@ -54,7 +61,7 @@ test('history persists after exit and old configurations are read-only', async (
   await page.getByRole('button', { name: '历史', exact: true }).click()
   await page.getByLabel('历史范围').selectOption('all')
   await expect(page.getByText('旧配置 · 只读')).toBeVisible()
-  await expect(page.getByRole('button', { name: '确认学习记录' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /确认学习记录|重新查询/ })).toHaveCount(0)
 })
 
 test('hard exit during a write recovers by reading only', async () => {

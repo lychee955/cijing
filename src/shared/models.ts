@@ -1,7 +1,17 @@
 import type { ErrorCode } from './result'
 
-export interface Vocabulary { id: string; spelling: string }
-export interface CredentialStatus { configured: boolean; available: boolean; invalid?: boolean }
+export interface Vocabulary {
+  id: string
+  spelling: string
+  interpretations?: string[]
+  interpretationError?: string
+  phonetics?: { uk?: string; us?: string }
+}
+export interface DictionaryEntry {
+  interpretations: string[]
+  phonetics?: { uk?: string; us?: string }
+}
+export interface CredentialStatus { configured: boolean; available: boolean; invalid?: boolean; verified?: boolean }
 export type AddState = 'added' | 'present' | 'not_added' | 'uncertain' | 'unconfirmed' | 'failed'
 export interface AddOutcome {
   vocId: string
