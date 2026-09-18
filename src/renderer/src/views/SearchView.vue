@@ -45,7 +45,7 @@ onUnmounted(() => { window.removeEventListener('focus', focus); stop() })
       <div class="section-label">匹配词条 <span>{{ search.words.length }} 个结果 · 请确认拼写</span></div>
       <div v-for="word in search.words" :key="word.id" class="word-card" :class="{ selected: search.selectedId === word.id }"
         @click="!search.submitting && search.select(word.id)">
-        <input type="radio" name="word" :value="word.id" :checked="search.selectedId === word.id"
+        <input class="visually-hidden" type="radio" name="word" :value="word.id" :checked="search.selectedId === word.id"
           :aria-label="word.spelling" :disabled="search.submitting" @change="search.select(word.id)" />
         <span class="word-details">
           <span class="word-spelling">{{ word.spelling }}</span>
@@ -71,7 +71,14 @@ onUnmounted(() => { window.removeEventListener('focus', focus); stop() })
             <span v-for="meaning in word.interpretations" :key="meaning" class="word-definition">{{ meaning }}</span>
           </span>
           <span v-else class="word-definition">暂无可用释义</span>
-          <span class="word-definition study-status" aria-live="polite">
+          <span class="word-definition study-status" :class="search.studyStatuses[word.id]?.outcome?.state" aria-live="polite">
+            <svg v-if="['added', 'present'].includes(search.studyStatuses[word.id]?.outcome?.state ?? '')" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+              <path d="m5 12.5 4.5 4.5L19 7.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <svg v-else-if="search.studyStatuses[word.id]?.outcome?.state === 'unconfirmed'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8h.01M12 11v5" stroke-linecap="round" />
+            </svg>
             <template v-if="search.studyStatuses[word.id]?.loading">正在查询学习记录…</template>
             <template v-else-if="search.studyStatuses[word.id]?.error">学习记录查询失败：{{ search.studyStatuses[word.id]?.error }}</template>
             <template v-else>{{ search.studyStatuses[word.id]?.outcome?.message }}</template>

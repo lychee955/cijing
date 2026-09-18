@@ -1,31 +1,11 @@
-import { Menu, nativeImage, Tray } from 'electron'
+import { Menu, Tray } from 'electron'
 import type { PageName } from '../shared/models'
-
-function trayImage() {
-  // Small code-native M glyph: no external font or asset path dependency.
-  const size = 32, bitmap = Buffer.alloc(size * size * 4)
-  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
-    const glyph = y >= 8 && y <= 24 && (x >= 7 && x <= 10 || x >= 22 && x <= 25 ||
-      y <= 18 && Math.abs(y - (x <= 16 ? x + 1 : 33 - x)) <= 2)
-    const offset = (y * size + x) * 4
-    if (process.platform === 'darwin') {
-      bitmap[offset + 3] = glyph ? 255 : 0
-    } else {
-      bitmap[offset] = glyph ? 236 : 67
-      bitmap[offset + 1] = glyph ? 246 : 91
-      bitmap[offset + 2] = glyph ? 239 : 52
-      bitmap[offset + 3] = 255
-    }
-  }
-  const image = nativeImage.createFromBitmap(bitmap, { width: size, height: size, scaleFactor: 2 })
-  if (process.platform === 'darwin') image.setTemplateImage(true)
-  return image
-}
+import { trayIcon } from './icon'
 
 export function createTray(reveal: (page: PageName) => void, quit: () => void): Tray | null {
   let tray: Tray | null = null
   try {
-    tray = new Tray(trayImage())
+    tray = new Tray(trayIcon())
     tray.setToolTip('墨墨 · 桌面查词')
     tray.setContextMenu(Menu.buildFromTemplate([
       { label: '查词', click: () => reveal('search') },

@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url'
 import { channels } from '../shared/contracts'
 import type { DesktopSettings, PageName } from '../shared/models'
 import type { SettingsStore } from './storage/settings'
+import { windowIcon } from './icon'
 import { visibleBounds } from './window-bounds'
 
 export class WindowManager {
@@ -24,7 +25,7 @@ export class WindowManager {
     const bounds = visibleBounds(settings.bounds(), this.workAreas())
     this.window = new BrowserWindow({ ...bounds,
       minWidth: Math.min(620, bounds.width), minHeight: Math.min(580, bounds.height), show: false,
-      title: '墨墨 · 桌面查词', backgroundColor: '#f5f3ee', autoHideMenuBar: true,
+      title: '墨墨 · 桌面查词', backgroundColor: '#f5f3ee', autoHideMenuBar: true, icon: windowIcon(),
       webPreferences: { preload: join(__dirname, '../preload/index.js'), contextIsolation: true,
         nodeIntegration: false, sandbox: true, webSecurity: true, webviewTag: false }
     })

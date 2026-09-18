@@ -28,7 +28,8 @@ h1 { font-size: 28px; font-weight: 650; letter-spacing: -.5px; margin: 0 0 12px;
 .section-label span { font-weight: 400; color: #84907f; font-size: 12px; }
 .word-card { padding: 17px; display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid #e0e4d9; border-radius: 11px; margin-bottom: 9px; cursor: pointer; }
 .word-card.selected { border-color: #8ca77f; background: #f0f4e9; }
-input[type=radio] { accent-color: #345b43; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.word-card:has(input:focus-visible) { outline: 3px solid #9fbf9a; outline-offset: 3px; }
 .word-spelling { font-size: 23px; overflow-wrap: anywhere; }
 .word-details { flex: 1; min-width: 0; }
 .word-definitions { display: block; }
@@ -38,6 +39,10 @@ input[type=radio] { accent-color: #345b43; }
 .speaker-icon { width: 17px; height: 17px; flex-shrink: 0; }
 .audio-error { color: #984d38; }
 .word-definition { display: block; margin-top: 6px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.study-status.unconfirmed, .study-status.added, .study-status.present { display: flex; align-items: flex-start; gap: 6px; padding: 9px 12px; border-radius: 8px; font-size: 13px; }
+.study-status.unconfirmed { background: #f5ebd4; color: #896129; }
+.study-status.added, .study-status.present { background: #e3efdf; color: #2c643e; }
+.study-status.unconfirmed svg, .study-status.added svg, .study-status.present svg { width: 15px; height: 15px; flex: none; margin-top: 3px; }
 .subtle { color: #85907f; font-size: 12px; line-height: 1.8; }
 .actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
 .notice { padding: 13px 15px; background: #e9ede2; border-radius: 9px; font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }
