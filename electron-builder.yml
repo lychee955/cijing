@@ -1,0 +1,21 @@
+appId: com.momo.desktop
+productName: 墨墨桌面查词
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**
+  - package.json
+asarUnpack:
+  - '**/*.node'
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+    - target: portable
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ${name}-${version}-setup.${ext}
+portable:
+  artifactName: ${name}-${version}-portable.${ext}
