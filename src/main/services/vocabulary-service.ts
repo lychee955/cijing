@@ -14,15 +14,11 @@ export class VocabularyService {
   }
 
   async lookup(credentials: CredentialSnapshot, spelling: string): Promise<Vocabulary[]> {
+    // Maimemo is authoritative for whether a spelling can be added. UAPI only
+    // enriches the matches, so an empty or failed dictionary lookup must never
+    // remove a Maimemo result.
     const matches = await this.client.lookup(credentials.token, spelling)
-    const words: Vocabulary[] = []
-    for (const word of matches) {
-      try {
-        words.push({ ...word, ...await this.dictionary.lookup(word.spelling) })
-      } catch (error) {
-        words.push({ ...word, interpretationError: error instanceof DictionaryError ? error.message : '词典查询失败，请稍后重试。' })
-      }
-    }
+    const words = await Promise.all(matches.map(word => this.enrich(word)))
     const entries = this.known.get(credentials.profileId) ?? new Map<string, Vocabulary>()
     for (const word of words) entries.set(word.id, word)
     while (entries.size > 2000) entries.delete(entries.keys().next().value!)
@@ -37,4 +33,11 @@ export class VocabularyService {
   }
 
   clear(): void { this.known.clear() }
+
+  private async enrich(word: Vocabulary): Promise<Vocabulary> {
+    try { return { ...word, ...await this.dictionary.lookup(word.spelling) } }
+    catch (error) {
+      return { ...word, interpretationError: error instanceof DictionaryError ? error.message : '词典查询失败，请稍后重试。' }
+    }
+  }
 }

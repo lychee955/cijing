@@ -32,6 +32,18 @@ describe('matched word definitions', () => {
     lookup.mockRejectedValue(new ClientError('AUTH'))
     await expect(service.lookup(credentials, 'apple')).rejects.toMatchObject({ code: 'AUTH' })
   })
+  it('keeps a Maimemo match when UAPI has no entry', async () => {
+    const { lookup, definitions, service } = setup()
+    lookup.mockResolvedValue([{ id: 'v-missing', spelling: 'uapi-missing' }])
+    definitions.mockResolvedValue({ interpretations: [] })
+
+    expect(await service.lookup(credentials, 'uapi-missing')).toEqual([
+      { id: 'v-missing', spelling: 'uapi-missing', interpretations: [] }
+    ])
+    expect(lookup).toHaveBeenCalledWith('dummy', 'uapi-missing')
+    expect(definitions).toHaveBeenCalledWith('uapi-missing')
+    expect(service.get('profile', 'v-missing')).toMatchObject({ id: 'v-missing', spelling: 'uapi-missing' })
+  })
   it('does not request definitions for no matches or credential validation', async () => {
     const { lookup, definitions, service } = setup()
     lookup.mockResolvedValue([])

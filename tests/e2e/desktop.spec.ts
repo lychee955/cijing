@@ -169,6 +169,26 @@ test('UAPI failure keeps matched words selectable and permits adding to Maimemo'
   expect(await writes()).toBe(1)
 })
 
+test('a word missing from UAPI is still queried and added through Maimemo', async () => {
+  await configure()
+  await query('uapi-missing')
+  await expect(page.locator('.word-card')).toContainText('uapi-missing')
+  await expect(page.locator('.word-card')).toContainText('暂无可用释义')
+  await expect(page.getByRole('button', { name: '加入学习规划' })).toBeEnabled()
+
+  const calls = await app.evaluate(() => (globalThis as unknown as {
+    momoMock: { calls: Array<{ path: string; body?: { spellings?: string[] } }> }
+  }).momoMock.calls)
+  expect(calls).toEqual(expect.arrayContaining([
+    expect.objectContaining({ path: '/open/api/v1/memo/vocabulary/query', body: { spellings: ['uapi-missing'] } }),
+    expect.objectContaining({ path: '/api/v1/dictionary/lookup' })
+  ]))
+
+  await page.getByRole('button', { name: '加入学习规划' }).click()
+  await expect(page.getByRole('status')).toHaveText('已加入学习规划')
+  expect(await writes()).toBe(1)
+})
+
 test('saved Token can be revealed, concealed and replaced without saving on view', async () => {
   test.setTimeout(60_000)
   await configure()
