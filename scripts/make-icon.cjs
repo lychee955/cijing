@@ -1,40 +1,17 @@
-// Generates build/icon.png (512x512) from the same code-native M glyph as src/main/icon.ts,
-// so the exe/installer icon matches the tray. Nearest-neighbor upscale keeps the glyph pixels.
+// Generate all logo assets from the shared Cijing book/reading-lines geometry.
 const { deflateSync } = require('node:zlib')
 const { writeFileSync, mkdirSync } = require('node:fs')
 const { join } = require('node:path')
-
-const cell = 16, size = 32 * cell // 16x supersample of the 32px glyph grid
-const radius = Math.round(size * 0.225) // rounded corners, brand-mark style
-const background = [52, 91, 67] // #345B43, same green as the brand mark / tray
-const glyph = [236, 246, 239] // #ECF6EF, same as the tray M
-
-function glyphAt(x, y) { // identical predicate to src/main/icon.ts on the 32px grid
-  const gx = Math.floor(x / cell), gy = Math.floor(y / cell)
-  return gy >= 8 && gy <= 24 && (gx >= 7 && gx <= 10 || gx >= 22 && gx <= 25 ||
-    gy <= 18 && Math.abs(gy - (gx <= 16 ? gx + 1 : 33 - gx)) <= 2)
-}
-
-function cornerAlpha(x, y) { // 1px anti-aliased rounded-corner mask, corner regions only
-  const inLeft = x < radius, inRight = x >= size - radius
-  const inTop = y < radius, inBottom = y >= size - radius
-  if (!((inLeft || inRight) && (inTop || inBottom))) return 255
-  const cx = inLeft ? radius : size - radius, cy = inTop ? radius : size - radius
-  const d = Math.hypot(x - cx, y - cy)
-  return Math.max(0, Math.min(255, Math.round((radius - d + 0.5) * 255)))
-}
-
+const brand = require('../src/shared/brand.json')
+const esbuild = require('../node_modules/vite/node_modules/esbuild')
+const source = esbuild.buildSync({ entryPoints: [join(__dirname, '../src/shared/brand-icon.ts')], bundle: true, platform: 'node', format: 'cjs', write: false }).outputFiles[0].text
+const iconModule = { exports: {} }
+new Function('module', 'exports', source)(iconModule, iconModule.exports)
+const size = 512, pixels = iconModule.exports.renderBrandPixels(size)
 const raw = Buffer.alloc((size * 4 + 1) * size)
 for (let y = 0; y < size; y++) {
   raw[y * (size * 4 + 1)] = 0 // filter: none
-  for (let x = 0; x < size; x++) {
-    const offset = y * (size * 4 + 1) + 1 + x * 4
-    const inside = glyphAt(x, y)
-    raw[offset] = inside ? glyph[0] : background[0]
-    raw[offset + 1] = inside ? glyph[1] : background[1]
-    raw[offset + 2] = inside ? glyph[2] : background[2]
-    raw[offset + 3] = cornerAlpha(x, y)
-  }
+  raw.set(pixels.subarray(y * size * 4, (y + 1) * size * 4), y * (size * 4 + 1) + 1)
 }
 
 let table = new Uint32Array(256).map((_, n) => { for (let k = 0; k < 8; k++) n = n & 1 ? 0xEDB88320 ^ n >>> 1 : n >>> 1; return n })
@@ -54,4 +31,8 @@ const png = Buffer.concat([
 ])
 mkdirSync(join(__dirname, '../build'), { recursive: true })
 writeFileSync(join(__dirname, '../build/icon.png'), png)
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="${brand.icon.radius}" fill="${brand.icon.background}"/>${brand.icon.strokes.map(stroke => `<polyline points="${stroke.points.map(p => p.join(',')).join(' ')}" fill="none" stroke="${stroke.accent ? brand.icon.accent : brand.icon.foreground}" stroke-width="${stroke.width}" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}</svg>\n`
+writeFileSync(join(__dirname, '../build/logo.svg'), svg)
+mkdirSync(join(__dirname, '../src/renderer/src/assets'), { recursive: true })
+writeFileSync(join(__dirname, '../src/renderer/src/assets/logo.svg'), svg)
 console.info(`build/icon.png written (${size}x${size}, ${png.length} bytes)`)

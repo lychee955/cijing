@@ -1,5 +1,5 @@
-appId: com.momo.desktop
-productName: 墨墨桌面查词
+appId: com.lychee955.cijing
+productName: 词境
 directories:
   buildResources: build
   output: dist

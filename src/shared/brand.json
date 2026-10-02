@@ -1,0 +1,24 @@
+{
+  "name": "词境",
+  "packageName": "cijing",
+  "subtitle": "查词与句子解析",
+  "title": "词境 · 查词与句子解析",
+  "appId": "com.lychee955.cijing",
+  "icon": {
+    "background": "#345b43",
+    "foreground": "#f2f6ed",
+    "accent": "#d6bb7f",
+    "radius": 7,
+    "strokes": [
+      { "points": [[16, 11], [11, 9], [7, 9], [7, 22], [11, 22], [16, 24]], "width": 1.6, "accent": false },
+      { "points": [[16, 11], [21, 9], [25, 9], [25, 22], [21, 22], [16, 24]], "width": 1.6, "accent": false },
+      { "points": [[16, 11], [16, 24]], "width": 1.6, "accent": false },
+      { "points": [[10, 13], [13, 14]], "width": 1.4, "accent": false },
+      { "points": [[10, 17], [13, 18]], "width": 1.4, "accent": false },
+      { "points": [[19, 14], [22, 13]], "width": 1.4, "accent": false },
+      { "points": [[19, 18], [22, 17]], "width": 1.4, "accent": false },
+      { "points": [[24, 4], [24, 7]], "width": 1.4, "accent": true },
+      { "points": [[22.5, 5.5], [25.5, 5.5]], "width": 1.4, "accent": true }
+    ]
+  }
+}

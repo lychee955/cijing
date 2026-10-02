@@ -1,4 +1,8 @@
-# 墨墨桌面查词
+# 词境 · cijing
+
+![词境 Logo](build/logo.svg)
+
+英语查词、句子解析与生词收录工具，支持连接墨墨学习规划。项目仓库：[lychee955/cijing](https://github.com/lychee955/cijing)。词境为独立第三方工具，不属于墨墨官方产品。
 
 Electron + Vue 3 + TypeScript 桌面客户端。支持查词、添加与确认、SQLite 历史和重启恢复、托盘、可配置全局快捷键、单实例及窗口设置，并新增**句子分析与可切换 AI 服务**。M1 已使用用户真实账号新增 `apple`，并确认手机端可见；自动验证使用隔离模拟接口，不额外修改真实学习规划。
 
@@ -48,7 +52,7 @@ npm start
 | 全局唤出并聚焦查词 | `Ctrl/Cmd + Shift + M`，可在设置中修改或停用 |
 | 查词 / 历史 / 设置 / 句子分析 | `Ctrl/Cmd + 1 / 2 / 3 / 4`             |
 | 隐藏窗口           | `Esc`；托盘不可用时改为最小化                |
-| 退出应用           | 托盘「退出墨墨」或设置「退出应用」             |
+| 退出应用           | 托盘「退出词境」或设置「退出应用」             |
 
 默认关闭窗口会隐藏到托盘，可在设置中改为退出。快捷键注册失败会保留原快捷键；状态显示在设置页。Linux 为避免不可见的托盘宿主，隐藏操作默认改为最小化。窗口位置自动保存；显示器断开或布局改变后会校正到可见区域。外观支持跟随系统、浅色、深色。
 
@@ -80,7 +84,7 @@ Token 经 Electron `safeStorage` 加密写入应用数据目录下的 `credentia
 
 AI 密钥经 safeStorage 加密，保存在 SQLite 的独立字段，界面不读取已保存明文。原文、有效提示词快照和讲解作为本地普通数据保存，可以从分析页删除。升级自动迁移数据库到版本 2，保留原墨墨配置和操作历史。
 
-AI 请求和响应会打印到启动终端（`[ai-http]`），同时写入 `%APPDATA%\momo-desktop\logs\ai.log`。每条日志包含时间、请求 ID、模型、地址、请求体、响应状态/响应体、耗时及 `Retry-After`；本地冷却拦截记为 `cooldown`，`requestSent: false` 表示未再发请求。密钥、鉴权头和 Cookie 会遮盖；原文、提示词和模型回答会进入日志。单个请求/响应体超过 64,000 字符会截断，文件达到约 4 MB 时保留一份 `ai.log.1`。启动前设置 `MOMO_AI_LOG_CONTENT=0` 可关闭请求/响应体记录，仍记录状态和耗时。新日志从更新后重启应用的下一次请求开始生成。
+AI 请求和响应会打印到启动终端（`[ai-http]`），同时写入应用数据目录的 `logs/ai.log`。新安装默认在 `%APPDATA%\cijing\logs\ai.log`，旧版升级继续使用 `%APPDATA%\momo-desktop\logs\ai.log`。每条日志包含时间、请求 ID、模型、地址、请求体、响应状态/响应体、耗时及 `Retry-After`；本地冷却拦截记为 `cooldown`，`requestSent: false` 表示未再发请求。密钥、鉴权头和 Cookie 会遮盖；原文、提示词和模型回答会进入日志。单个请求/响应体超过 64,000 字符会截断，文件达到约 4 MB 时保留一份 `ai.log.1`。启动前设置 `CIJING_AI_LOG_CONTENT=0` 可关闭请求/响应体记录，仍记录状态和耗时；兼容旧变量 `MOMO_AI_LOG_CONTENT`。
 
 429 表示限流或模型繁忙，等待提示来自服务端 `Retry-After` 或本地冷却剩余时间；等候结束后仍可能受限。402 且没有等待时间时会单独提示余额或额度不足。具体原因查看响应体的 `error.message` 和 `error.metadata`。
 
@@ -99,7 +103,7 @@ node scripts/verify-ai.cjs --profile "配置名称" --model "模型ID" --quality
 
 ## 数据与恢复
 
-SQLite 文件为应用数据目录下的 `momo.sqlite3`，只由主进程访问，包含版本化迁移、配置、操作日志和桌面设置。Windows 默认在 `%APPDATA%/momo-desktop/`。保留 SQLite 主文件及可能存在的 `-wal`、`-shm` 文件；不要在应用运行时手动替换数据库。
+SQLite 文件为应用数据目录下的 `momo.sqlite3`，只由主进程访问，包含版本化迁移、配置、操作日志和桌面设置。文件名为兼容旧版保留。Windows 新安装默认使用 `%APPDATA%/cijing/`；如果检测到旧版 `%APPDATA%/momo-desktop/` 且新目录尚无数据库，则继续使用完整旧目录，保留 Token、AI 密钥、历史、设置和系统加密元数据。显式指定的数据目录优先。保留 SQLite 主文件及可能存在的 `-wal`、`-shm` 文件；不要在应用运行时手动替换数据库。
 
 发送添加请求前会提交一条 `submitting` 日志。正常退出或崩溃后，重启将遗留日志转换成 `uncertain`，最多自动确认当前配置的 5 条待确认操作；遇鉴权、网络或限流错误停止本轮，其余记录可在历史页手动确认。整个恢复流程只读，不自动重新添加。
 
@@ -108,7 +112,7 @@ M1 已保存的加密 Token 会直接复用。M1 的历史只存在旧进程内�
 ## 验证
 
 ```sh
-npm test           # Vitest：169 项测试，包括真实 SQLite 临时数据库
+npm test           # Vitest：172 项测试，包括真实 SQLite 临时数据库
 npm run build      # strict 类型检查与三个进程的生产构建
 npm run test:e2e   # Playwright：原桌面流程与句子分析验收（真实音频验证默认跳过）
 ```

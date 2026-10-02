@@ -50,7 +50,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid #9fbf9a; outline-
 .shell { max-width: 960px; margin: auto; min-height: 100vh; display: flex; flex-direction: column; }
 .app-header { display: flex; justify-content: space-between; align-items: center; padding: 25px 36px; border-bottom: 1px solid #e2e4dc; }
 .brand { display: flex; gap: 12px; align-items: center; }
-.brand-mark { background: #345b43; color: #fff; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; font-size: 23px; }
+.brand-mark { width: 40px; height: 40px; flex: none; }
 .brand strong { font-size: 18px; }
 .brand-sub { margin-left: 12px; color: #7b857b; font-size: 13px; }
 nav { display: flex; gap: 5px; }

@@ -19,14 +19,16 @@ const env = { ...process.env }
 delete env.ELECTRON_RUN_AS_NODE
 // Windows OSCrypt uses the application's Local State encryption key. Copy its
 // encrypted metadata to an isolated directory so the real app is never mutated.
-const verificationData = mkdtempSync(join(tmpdir(), 'momo-ai-verification-'))
+const verificationData = mkdtempSync(join(tmpdir(), 'cijing-ai-verification-'))
 if (process.platform === 'win32') {
-  const localState = join(process.env.APPDATA, 'momo-desktop', 'Local State')
+  const currentData = join(process.env.APPDATA, 'cijing')
+  const dataPath = existsSync(join(currentData, 'momo.sqlite3')) || !existsSync(join(process.env.APPDATA, 'momo-desktop')) ? currentData : join(process.env.APPDATA, 'momo-desktop')
+  const localState = join(dataPath, 'Local State')
   if (existsSync(localState)) copyFileSync(localState, join(verificationData, 'Local State'))
 }
 const result = spawnSync(require('electron'), [target, ...args, '--verification-data', verificationData], { cwd: root, env, stdio: 'inherit', windowsHide: true })
 if (result.status !== 0) console.error(`真实验证未完成（进程状态 ${result.status ?? result.signal ?? '未知'}），详情见验收文件或应用配置。`)
 const checkedData = resolve(verificationData)
-if (dirname(checkedData) === resolve(tmpdir()) && basename(checkedData).startsWith('momo-ai-verification-')) rmSync(checkedData, { recursive: true, force: true })
+if (dirname(checkedData) === resolve(tmpdir()) && basename(checkedData).startsWith('cijing-ai-verification-')) rmSync(checkedData, { recursive: true, force: true })
 if (result.error) console.error('无法启动真实 AI 验证，请检查 Electron 安装。')
 process.exit(result.status ?? 1)

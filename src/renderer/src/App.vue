@@ -4,6 +4,8 @@ import SearchView from './views/SearchView.vue'
 import SettingsView from './views/SettingsView.vue'
 import HistoryView from './views/HistoryView.vue'
 import AnalysisView from './views/AnalysisView.vue'
+import BrandLogo from './components/BrandLogo.vue'
+import brand from '../../shared/brand.json'
 import { useSearchStore } from './stores/search'
 import { useDesktopStore } from './stores/desktop'
 import type { PageName } from '../../shared/models'
@@ -39,7 +41,7 @@ onUnmounted(() => { unsubscribe?.(); unsubscribeChanged?.(); window.removeEventL
 <template>
   <div class="shell">
     <header class="app-header">
-      <div class="brand"><span class="brand-mark">墨</span><div><strong>墨墨</strong><span class="brand-sub">桌面查词</span></div></div>
+      <div class="brand"><BrandLogo class="brand-mark" /><div><strong>{{ brand.name }}</strong><span class="brand-sub">{{ brand.subtitle }}</span></div></div>
       <nav aria-label="主导航">
         <button :class="{ active: page === 'search' }" @click="page = 'search'">查词</button>
         <button :class="{ active: page === 'analysis' }" @click="page = 'analysis'">句子分析</button>

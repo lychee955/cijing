@@ -18,19 +18,24 @@ import { AiStore } from './storage/ai-store'
 import { AnalysisService } from './services/analysis-service'
 import { registerAnalysisIpc } from './ipc/analysis'
 import { createAiLogger } from './ai/logging'
+import brand from '../shared/brand.json'
+import { resolveDataPath } from './storage/data-path'
 
 let windows: WindowManager | undefined
 let tray: Tray | null = null
 let database: OperationsDatabase | undefined
 let shortcuts: ShortcutManager | undefined
 let analysis: AnalysisService | undefined
+app.setName(brand.packageName)
+const dataPath = resolveDataPath(app.getPath('appData'), app.getPath('userData'))
+if (dataPath !== app.getPath('userData')) { app.setPath('userData', dataPath); app.setPath('sessionData', dataPath) }
 const locked = app.requestSingleInstanceLock()
 if (!locked) app.quit()
 else {
   app.on('second-instance', () => windows?.reveal('search'))
   app.on('activate', () => windows?.reveal('search'))
   void app.whenReady().then(() => {
-    app.setAppUserModelId('com.momo.desktop')
+    app.setAppUserModelId(brand.appId)
     session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false))
     session.defaultSession.setPermissionCheckHandler(() => false)
     mkdirSync(app.getPath('userData'), { recursive: true })
@@ -69,12 +74,12 @@ else {
     }
     registerIpc(windows.window, windows.allowedUrl, credentials, vocabulary, study, account, database, desktop)
     analysis = new AnalysisService(new AiStore(database, safeStorage), (url, init) => net.fetch(url, init),
-      createAiLogger(join(app.getPath('userData'), 'logs', 'ai.log'), process.env.MOMO_AI_LOG_CONTENT !== '0'))
+      createAiLogger(join(app.getPath('userData'), 'logs', 'ai.log'), (process.env.CIJING_AI_LOG_CONTENT ?? process.env.MOMO_AI_LOG_CONTENT) !== '0'))
     registerAnalysisIpc(windows.window, windows.allowedUrl, analysis)
     windows.load()
     void account.recover()
   }).catch(() => {
-    dialog.showErrorBox('墨墨启动失败', '无法初始化本地数据或桌面窗口。请检查应用数据目录权限、磁盘空间和 SQLite 原生依赖版本；已有数据不会被重置。')
+    dialog.showErrorBox('词境启动失败', '无法初始化本地数据或桌面窗口。请检查应用数据目录权限、磁盘空间和 SQLite 原生依赖版本；已有数据不会被重置。')
     app.quit()
   })
   app.on('will-quit', () => {

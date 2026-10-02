@@ -1,8 +1,8 @@
 {
-  "name": "momo-desktop",
+  "name": "cijing",
   "version": "0.2.0",
   "private": true,
-  "description": "墨墨背单词桌面添加工具 · M2",
+  "description": "词境 · 英语查词、句子解析与生词收录",
   "author": "lychee955",
   "main": "./out/main/index.js",
   "engines": {
@@ -14,7 +14,8 @@
     "dev": "electron-vite dev --watch",
     "start": "electron-vite preview",
     "typecheck": "vue-tsc --noEmit",
-    "build": "npm run typecheck && electron-vite build",
+    "icons": "node scripts/make-icon.cjs",
+    "build": "npm run icons && npm run typecheck && electron-vite build",
     "dist": "npm run build && electron-builder --win",
     "test": "node scripts/test.cjs",
     "test:e2e": "npm run build && playwright test",
