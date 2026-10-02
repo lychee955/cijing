@@ -1,6 +1,6 @@
 import type { AppError, ErrorCode, Result } from '../../shared/result'
 
-const messages: Record<ErrorCode, string> = {
+const messages: Partial<Record<ErrorCode, string>> = {
   INVALID_INPUT: '输入不符合要求，请检查后重试。',
   FORBIDDEN: '请求来源不受信任。',
   NO_CREDENTIAL: '请先在设置中保存 Token。',
@@ -23,13 +23,13 @@ const messages: Record<ErrorCode, string> = {
 
 export class ClientError extends Error {
   constructor(public readonly code: ErrorCode, public readonly ambiguous = false) {
-    super(messages[code])
+    super(messages[code] ?? '操作未完成，请重试。')
   }
 }
 
 export function publicError(error: unknown): AppError {
   const code = error instanceof ClientError ? error.code : 'INTERNAL'
-  return { code, message: messages[code] }
+  return { code, message: messages[code] ?? '操作未完成，请重试。' }
 }
 
 export async function resultOf<T>(action: () => T | Promise<T>): Promise<Result<T>> {

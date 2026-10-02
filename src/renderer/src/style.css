@@ -1,5 +1,44 @@
 :root { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; color: #293d34; background: #f5f3ee; font-synthesis: none; }
 * { box-sizing: border-box; }
+textarea { font: inherit; width: 100%; padding: 14px; border: 1px solid #bdcbb9; border-radius: 10px; background: #fff; color: inherit; resize: vertical; line-height: 1.8; }
+textarea:focus-visible, summary:focus-visible { outline: 3px solid #9fbf9a; outline-offset: 3px; }
+summary { cursor: pointer; padding: 10px 0; font-size: 14px; }
+.ai-settings { margin-top: 28px; }
+.ai-settings label select { display: block; width: 100%; margin-top: 10px; }
+.ai-profile { padding: 18px 0; border-bottom: 1px solid #cad4c4; overflow-wrap: anywhere; }
+.ai-profile .status-pill { margin-left: 8px; }
+.analysis-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 20px 0; }
+.analysis-toolbar label { flex: 1; font-size: 13px; min-width: 0; }
+.analysis-toolbar select { display: block; width: 100%; margin-top: 8px; }
+.analysis-result { margin-top: 28px; }
+.sentence-card { background: #fff; padding: 24px; border: 1px solid #e0e4d9; border-radius: 12px; margin: 18px 0; overflow-wrap: anywhere; line-height: 1.8; }
+.sentence-original { white-space: pre-wrap; margin: 12px 0; font-size: 21px; }
+.backbone { border-left: 3px solid #69825a; padding: 12px 16px; background: #edf1e7; margin: 20px 0; border-radius: 5px; }
+.backbone p { margin: 6px 0 0; }
+.analysis-node { border-left: 3px solid #7699ab; padding-left: 14px; margin: 8px 0; }
+.analysis-node.clause { border-color: #a088af; }
+.analysis-node p { font-size: 14px; margin: 10px 0; }
+.role-label { color: #42677b; font-weight: 650; }
+.clause > summary .role-label { color: #78588b; }
+.annotated-quote { white-space: pre-wrap; }
+.annotated-quote mark { background: #e2edf2; color: #314f60; border-radius: 3px; padding: 2px; }
+.clause > .annotated-quote mark { background: #efe5f5; color: #644878; }
+.analysis-vocabulary { padding: 12px 0; border-bottom: 1px solid #cad4c4; }
+.analysis-vocabulary p { margin: 4px 0; }
+.analysis-vocabulary .actions { gap: 8px; margin-top: 10px; }
+.analysis-vocabulary .actions button { padding: 6px 10px; min-height: 32px; border-radius: 6px; font-size: 13px; line-height: 1.4; }
+.analysis-history { margin-top: 36px; }
+:root[data-theme=dark] :is(textarea,.sentence-card) { background: #2c352c; color: #dae4d8; border-color: #475544; }
+:root[data-theme=dark] .backbone { background: #354333; }
+:root[data-theme=dark] .role-label { color: #9ec9df; }
+:root[data-theme=dark] .clause > summary .role-label { color: #d4b4e2; }
+@media (prefers-color-scheme: dark) {
+  :root[data-theme=system] :is(textarea,.sentence-card) { background: #2c352c; color: #dae4d8; border-color: #475544; }
+  :root[data-theme=system] .backbone { background: #354333; }
+  :root[data-theme=system] .role-label { color: #9ec9df; }
+  :root[data-theme=system] .clause > summary .role-label { color: #d4b4e2; }
+}
+@media (max-width: 680px) { .app-header { flex-wrap: wrap; gap: 16px; } nav { flex-wrap: wrap; } nav button { padding: 9px 10px; } .sentence-card { padding: 18px; } footer { flex-wrap: wrap; gap: 10px; } }
 body { margin: 0; }
 button, input { font: inherit; }
 button { border: 1px solid #d7ddd5; border-radius: 9px; padding: 10px 16px; color: #334c3e; background: #fff; cursor: pointer; transition: background .15s; }
@@ -49,6 +88,7 @@ h1 { font-size: 28px; font-weight: 650; letter-spacing: -.5px; margin: 0 0 12px;
 .notice.added, .notice.present { color: #2c643e; background: #e3efdf; }
 .notice.uncertain, .notice.not_added { background: #f5ebd4; color: #896129; }
 .notice.error, .notice.failed { background: #f6e5df; color: #984d38; }
+.ai-error-message { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 360px; overflow-y: auto; }
 .empty { text-align: center; padding: 35px 0; color: #7c8877; }
 .empty-symbol { display: block; font: italic 43px Georgia, serif; color: #b4bea8; margin-bottom: 20px; }
 .empty strong { font-size: 16px; font-weight: 500; }
@@ -106,7 +146,7 @@ h2 { font-size: 18px; margin: 0 0 15px; }
 .token-caption { display: flex; gap: 6px; align-items: center; margin: 11px 0 0; font-size: 11px; line-height: 1.6; color: var(--account-muted); }
 .token-caption svg { width: 13px; height: 13px; }
 .account-actions { display: flex; align-items: center; gap: 8px; margin-top: 22px; }
-.account-actions button { font-size: 12px; padding: 8px 13px; }
+.settings-page button:not(.icon-button) { font-size: 12px; line-height: 1.5; padding: 8px 13px; height: 36px; border-radius: 9px; }
 .settings-page .account-card .clear-token { margin-left: auto; border-color: transparent; background: transparent; color: var(--account-danger); }
 .settings-page .account-card .clear-token:hover:enabled { background: var(--account-tint); }
 .token-help { margin-top: 22px; border-top: 1px solid var(--account-border); padding-top: 15px; font-size: 12px; color: var(--account-muted); }

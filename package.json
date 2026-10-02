@@ -11,7 +11,7 @@
   "scripts": {
     "postinstall": "node node_modules/electron/install.js && electron-rebuild -f -w better-sqlite3",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
-    "dev": "electron-vite dev",
+    "dev": "electron-vite dev --watch",
     "start": "electron-vite preview",
     "typecheck": "vue-tsc --noEmit",
     "build": "npm run typecheck && electron-vite build",

@@ -2,6 +2,15 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { channels, type DesktopApi } from '../shared/contracts'
 
 const api: DesktopApi = {
+  ai: {
+    configuration: () => ipcRenderer.invoke(channels.aiConfig), templates: () => ipcRenderer.invoke(channels.aiTemplates),
+    save: input => ipcRenderer.invoke(channels.aiSave, input), delete: id => ipcRenderer.invoke(channels.aiDelete, id),
+    select: id => ipcRenderer.invoke(channels.aiSelect, id), supplement: value => ipcRenderer.invoke(channels.aiSupplement, value), test: id => ipcRenderer.invoke(channels.aiTest, id)
+  },
+  analysis: {
+    run: request => ipcRenderer.invoke(channels.analysisRun, request), cancel: id => ipcRenderer.invoke(channels.analysisCancel, id),
+    history: (offset, limit) => ipcRenderer.invoke(channels.analysisHistory, offset, limit), get: id => ipcRenderer.invoke(channels.analysisGet, id), delete: id => ipcRenderer.invoke(channels.analysisDelete, id)
+  },
   credentials: {
     status: () => ipcRenderer.invoke(channels.credentialStatus),
     save: token => ipcRenderer.invoke(channels.credentialSave, token),
@@ -24,6 +33,7 @@ const api: DesktopApi = {
     save: settings => ipcRenderer.invoke(channels.desktopSave, settings),
     hide: () => ipcRenderer.invoke(channels.desktopHide),
     quit: () => ipcRenderer.invoke(channels.desktopQuit),
+    devTools: () => ipcRenderer.invoke(channels.desktopDevTools),
     onNavigate: callback => {
       const listener = (_event: Electron.IpcRendererEvent, page: import('../shared/models').PageName) => callback(page)
       ipcRenderer.on(channels.navigate, listener)

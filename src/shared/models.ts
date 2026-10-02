@@ -48,4 +48,4 @@ export interface DesktopStatus {
   hideSupported: boolean
   recovering: boolean
 }
-export type PageName = 'search' | 'history' | 'settings'
+export type PageName = 'search' | 'history' | 'settings' | 'analysis'

@@ -27,14 +27,14 @@ describe('SQLite persistence and recovery', () => {
     db.finish(id, { vocId: 'v1', spelling: 'apple', state: 'added', message: '已加入学习规划' })
     db.writeSetting('sample', { theme: 'dark' }); db.close()
     const reloaded = open(file)
-    expect(reloaded.connection.pragma('user_version', { simple: true })).toBe(1)
+    expect(reloaded.connection.pragma('user_version', { simple: true })).toBe(2)
     expect(reloaded.readSetting('sample')).toEqual({ theme: 'dark' })
     expect(reloaded.get(id)).toMatchObject({ state: 'added', activeProfile: true, confirmedAt: null })
     expect(reloaded.activeProfileId()).toBe('profile1')
   })
   it('refuses a future database version without resetting it', () => {
     const file = path(), db = open(file)
-    db.connection.pragma('user_version=2'); db.close()
+    db.connection.pragma('user_version=3'); db.close()
     expect(() => open(file)).toThrow()
   })
   it('persists submitting before the API is called', async () => {

@@ -37,6 +37,26 @@ async function writes(): Promise<number> {
 test.beforeEach(async () => { userData = await mkdtemp(join(tmpdir(), 'momo-e2e-')); await launch() })
 test.afterEach(async () => { await app?.close(); await rm(userData, { recursive: true, force: true }) })
 
+test('settings developer-tools button opens DevTools without debug key bindings', async () => {
+  const windowId = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.id)
+  const opened = () => app.evaluate(({ BrowserWindow }, id) => BrowserWindow.fromId(id)!.webContents.isDevToolsOpened(), windowId)
+  const key = (keyCode: string, modifiers: ('control' | 'shift')[] = []) => app.evaluate(({ BrowserWindow }, input) => {
+    const contents = BrowserWindow.fromId(input.id)!.webContents
+    contents.sendInputEvent({ type: 'keyDown', keyCode: input.keyCode, modifiers: input.modifiers })
+    contents.sendInputEvent({ type: 'keyUp', keyCode: input.keyCode, modifiers: input.modifiers })
+  }, { id: windowId, keyCode, modifiers })
+  expect(await opened()).toBe(false)
+  await key('F12'); await key('I', ['control', 'shift'])
+  await page.getByRole('button', { name: '设置', exact: true }).click()
+  expect(await opened()).toBe(false)
+  await page.getByRole('button', { name: '开发者工具', exact: true }).click()
+  await expect.poll(opened).toBe(true)
+  await app.evaluate(({ BrowserWindow }, id) => BrowserWindow.fromId(id)!.webContents.closeDevTools(), windowId)
+  await expect.poll(opened).toBe(false)
+  await page.getByRole('button', { name: '开发者工具', exact: true }).click()
+  await expect.poll(opened).toBe(true)
+})
+
 test('encrypted credentials, sandboxed bridge, candidate selection, keyboard addition and reload', async () => {
   await expect(page.getByRole('button', { name: '配置个人 Token', exact: true })).toBeVisible()
   await configure()
@@ -44,7 +64,7 @@ test('encrypted credentials, sandboxed bridge, candidate selection, keyboard add
   expect(persisted).not.toContain('momo-e2e-dummy-token')
   expect(await page.evaluate(() => ({ node: typeof (window as unknown as { require?: unknown }).require,
     methods: Object.keys(window.desktop), credentials: Object.keys(window.desktop.credentials) })))
-    .toEqual({ node: 'undefined', methods: ['credentials', 'vocabulary', 'study', 'history', 'desktop'], credentials: ['status', 'save', 'clear', 'copy', 'reveal', 'validate'] })
+    .toEqual({ node: 'undefined', methods: ['ai', 'analysis', 'credentials', 'vocabulary', 'study', 'history', 'desktop'], credentials: ['status', 'save', 'clear', 'copy', 'reveal', 'validate'] })
   expect(await page.evaluate(() => typeof (window as unknown as { process?: unknown }).process)).toBe('undefined')
   expect(await page.evaluate(() => window.desktop.study.add('invented'))).toMatchObject({ ok: false, error: { code: 'UNKNOWN_WORD' } })
   expect(await page.evaluate(() => window.desktop.vocabulary.lookup(''))).toMatchObject({ ok: false, error: { code: 'INVALID_INPUT' } })
@@ -56,7 +76,8 @@ test('encrypted credentials, sandboxed bridge, candidate selection, keyboard add
   await expect(page.getByText('释义、音标与发音由 UAPI 提供，点击音标或喇叭播放。')).toBeVisible()
   await expect(page.locator('.word-card').nth(1)).toContainText('暂无可用释义')
   await expect(page.getByRole('button', { name: '加入学习规划' })).toBeDisabled()
-  await page.getByRole('radio').nth(1).check()
+  await page.locator('.word-card').nth(1).click()
+  await expect(page.getByRole('radio').nth(1)).toBeChecked()
   await page.getByRole('button', { name: '查询学习记录' }).click()
   await expect(page.getByRole('status')).toContainText('暂未查到学习记录')
   await expect(page.getByRole('button', { name: '加入学习规划' })).toBeEnabled()

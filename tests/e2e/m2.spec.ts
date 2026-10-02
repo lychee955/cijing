@@ -66,6 +66,7 @@ test('history persists after exit and old configurations are read-only', async (
 
 test('hard exit during a write recovers by reading only', async () => {
   await launch({ MOMO_TEST_MODE: 'pending' }); await configure(); await lookup()
+  await expect(page.getByRole('button', { name: '加入学习规划', exact: true })).toBeEnabled()
   await page.evaluate(() => { void window.desktop.study.add('v1') })
   await expect.poll(async () => { const result = await history(); return result.ok ? result.data.items[0]?.state : '' }).toBe('submitting')
   const closed = app.waitForEvent('close')

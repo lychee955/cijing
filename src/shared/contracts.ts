@@ -1,7 +1,11 @@
 import type { AddOutcome, CredentialStatus, Vocabulary, HistoryPage, HistoryQuery, DesktopStatus, DesktopSettings, PageName } from './models'
 import type { Result } from './result'
+import type { AiConfiguration, AiProfile, AiProfileInput, AiTemplate, AiTestResult } from './ai'
+import type { AnalysisRequest, AnalysisResponse, AnalysisRecord, AnalysisHistory } from './analysis'
 
 export const channels = {
+  aiConfig: 'ai:config', aiTemplates: 'ai:templates', aiSave: 'ai:save', aiDelete: 'ai:delete', aiSelect: 'ai:select', aiSupplement: 'ai:supplement', aiTest: 'ai:test',
+  analysisRun: 'analysis:run', analysisCancel: 'analysis:cancel', analysisHistory: 'analysis:history', analysisGet: 'analysis:get', analysisDelete: 'analysis:delete',
   credentialStatus: 'credentials:status',
   credentialSave: 'credentials:save',
   credentialClear: 'credentials:clear',
@@ -17,11 +21,28 @@ export const channels = {
   desktopSave: 'desktop:save',
   desktopHide: 'desktop:hide',
   desktopQuit: 'desktop:quit',
+  desktopDevTools: 'desktop:dev-tools',
   navigate: 'desktop:navigate',
   changed: 'app:changed'
 } as const
 
 export interface DesktopApi {
+  ai: {
+    configuration(): Promise<Result<AiConfiguration>>
+    templates(): Promise<Result<AiTemplate[]>>
+    save(input: AiProfileInput): Promise<Result<AiProfile>>
+    delete(id: string): Promise<Result<void>>
+    select(id: string): Promise<Result<void>>
+    supplement(value: string): Promise<Result<void>>
+    test(id: string): Promise<Result<AiTestResult>>
+  }
+  analysis: {
+    run(request: AnalysisRequest): Promise<Result<AnalysisResponse>>
+    cancel(requestId?: string): Promise<Result<void>>
+    history(offset: number, limit: number): Promise<Result<AnalysisHistory>>
+    get(id: string): Promise<Result<AnalysisRecord>>
+    delete(id?: string): Promise<Result<void>>
+  }
   credentials: {
     status(): Promise<Result<CredentialStatus>>
     save(token: string): Promise<Result<void>>
@@ -44,6 +65,7 @@ export interface DesktopApi {
     save(settings: DesktopSettings): Promise<Result<DesktopStatus>>
     hide(): Promise<Result<void>>
     quit(): Promise<Result<void>>
+    devTools(): Promise<Result<void>>
     onNavigate(callback: (page: PageName) => void): () => void
     onChanged(callback: () => void): () => void
   }

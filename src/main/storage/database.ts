@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import type { AddOutcome, HistoryEntry, HistoryPage, HistoryQuery, Vocabulary } from '../../shared/models'
 import { ClientError } from '../maimemo/errors'
 import { initialMigration } from './migrations/001-initial'
+import { analysisMigration } from './migrations/002-analysis'
 
 const columns = `o.id, o.profile_id AS profileId, o.voc_id AS vocId, o.spelling, o.state,
  o.message, o.created_at AS createdAt, o.updated_at AS updatedAt, o.confirmed_at AS confirmedAt,
@@ -18,10 +19,11 @@ export class OperationsDatabase {
       this.connection.pragma('synchronous = FULL')
       this.connection.pragma('busy_timeout = 3000')
       const version = this.connection.pragma('user_version', { simple: true }) as number
-      if (version > 1) throw new ClientError('STORAGE_ERROR')
-      if (version === 0) this.connection.transaction(() => {
-        this.connection.exec(initialMigration)
-        this.connection.pragma('user_version = 1')
+      if (version > 2) throw new ClientError('STORAGE_ERROR')
+      this.connection.transaction(() => {
+        if (version === 0) this.connection.exec(initialMigration)
+        if (version < 2) this.connection.exec(analysisMigration)
+        this.connection.pragma('user_version = 2')
       })()
     } catch { this.connection.close(); throw new ClientError('STORAGE_ERROR') }
   }

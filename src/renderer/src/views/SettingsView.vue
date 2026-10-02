@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { CredentialStatus } from '../../../shared/models'
+import AiSettings from '../components/AiSettings.vue'
 import { useSearchStore } from '../stores/search'
 import { useDesktopStore } from '../stores/desktop'
 import type { DesktopSettings } from '../../../shared/models'
@@ -10,7 +11,7 @@ const desktop = useDesktopStore()
 const preferences = ref<DesktopSettings>({ shortcut: '', closeBehavior: 'hide', theme: 'system' })
 const preferencesMessage = ref('')
 const savingPreferences = ref(false)
-async function desktopAction(action: 'hide' | 'quit'): Promise<void> {
+async function desktopAction(action: 'hide' | 'quit' | 'devTools'): Promise<void> {
   try {
     const result = await window.desktop.desktop[action]()
     if (!result.ok) preferencesMessage.value = result.error.message
@@ -165,6 +166,7 @@ onUnmounted(() => { conceal(); token.value = ''; window.removeEventListener('blu
       <details class="token-help"><summary>如何获取 Token？</summary><p>打开墨墨 App，在「我的 → 更多设置 → 实验功能 → 开放 API」获取个人 Token。</p></details>
     </div>
     <p class="subtle setup-note">请在手机 App 开启自动同步。学习记录可能延迟，结果待确认时应先查询状态。</p>
+    <AiSettings />
     <div class="settings-card desktop-settings">
       <h2>桌面行为</h2>
       <label for="shortcut">唤出查词快捷键</label>
@@ -178,6 +180,7 @@ onUnmounted(() => { conceal(); token.value = ''; window.removeEventListener('blu
       <select id="theme" v-model="preferences.theme"><option value="system">跟随系统</option><option value="light">浅色</option><option value="dark">深色</option></select>
       <div class="actions"><button class="primary" :disabled="savingPreferences" @click="savePreferences()">保存桌面设置</button>
         <button @click="desktopAction('hide')">{{ desktop.status?.hideSupported ? '隐藏窗口' : '最小化窗口' }}</button>
+        <button @click="desktopAction('devTools')">开发者工具</button>
         <button class="danger" @click="desktopAction('quit')">退出应用</button></div>
       <p v-if="preferencesMessage" class="notice" role="status">{{ preferencesMessage }}</p>
     </div>

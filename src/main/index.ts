@@ -14,11 +14,16 @@ import { ShortcutManager } from './shortcuts'
 import { WindowManager } from './windows'
 import { createTray } from './tray'
 import { channels } from '../shared/contracts'
+import { AiStore } from './storage/ai-store'
+import { AnalysisService } from './services/analysis-service'
+import { registerAnalysisIpc } from './ipc/analysis'
+import { createAiLogger } from './ai/logging'
 
 let windows: WindowManager | undefined
 let tray: Tray | null = null
 let database: OperationsDatabase | undefined
 let shortcuts: ShortcutManager | undefined
+let analysis: AnalysisService | undefined
 const locked = app.requestSingleInstanceLock()
 if (!locked) app.quit()
 else {
@@ -59,9 +64,13 @@ else {
         return desktop.status()
       },
       hide: () => windows!.hide(),
+      devTools: () => windows!.window.webContents.openDevTools({ mode: 'detach' }),
       quit: () => { setTimeout(() => app.quit(), 50) }
     }
     registerIpc(windows.window, windows.allowedUrl, credentials, vocabulary, study, account, database, desktop)
+    analysis = new AnalysisService(new AiStore(database, safeStorage), (url, init) => net.fetch(url, init),
+      createAiLogger(join(app.getPath('userData'), 'logs', 'ai.log'), process.env.MOMO_AI_LOG_CONTENT !== '0'))
+    registerAnalysisIpc(windows.window, windows.allowedUrl, analysis)
     windows.load()
     void account.recover()
   }).catch(() => {
@@ -69,6 +78,7 @@ else {
     app.quit()
   })
   app.on('will-quit', () => {
+    analysis?.cancel()
     shortcuts?.dispose()
     tray?.destroy()
     windows?.dispose()

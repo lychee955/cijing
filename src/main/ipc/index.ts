@@ -17,6 +17,7 @@ export interface DesktopControls {
   save(settings: DesktopSettings): DesktopStatus
   hide(): void
   quit(): void
+  devTools(): void
 }
 export const historyQuerySchema = z.object({
   scope: z.enum(['active', 'all']), offset: z.number().int().min(0).max(1_000_000),
@@ -58,5 +59,6 @@ export function registerIpc(window: BrowserWindow, allowedUrl: string, credentia
   handle(channels.desktopSave, z.tuple([settingsSchema]), settings => desktop.save(settings))
   handle(channels.desktopHide, noArgs, () => desktop.hide())
   handle(channels.desktopQuit, noArgs, () => desktop.quit())
+  handle(channels.desktopDevTools, noArgs, () => desktop.devTools())
   window.on('closed', () => { for (const channel of registered) ipcMain.removeHandler(channel) })
 }
