@@ -47,7 +47,7 @@ export class AiStore {
   markValid(id: string): void { this.db.connection.prepare('UPDATE ai_profiles SET auth_invalid=0 WHERE id=?').run(id) }
   verifiedMode(profile: AiProfile): OutputMode | undefined { return this.db.readSetting(`aiMode:${profile.protocol}:${profile.baseUrl}:${profile.model}:${profile.options.outputMode}`) as OutputMode | undefined }
   rememberMode(profile: AiProfile, mode: OutputMode): void { this.db.writeSetting(`aiMode:${profile.protocol}:${profile.baseUrl}:${profile.model}:${profile.options.outputMode}`, mode) }
-  saveAnalysis(record: AnalysisRecord, reuseKey: string): void { this.db.connection.prepare('INSERT INTO sentence_analyses (id,record,reuse_key,created_at) VALUES (?,?,?,?)').run(record.id, JSON.stringify(record), record.result.degraded ? null : reuseKey, record.createdAt) }
+  saveAnalysis(record: AnalysisRecord, reuseKey: string): void { this.db.connection.prepare('INSERT INTO sentence_analyses (id,record,reuse_key,created_at) VALUES (?,?,?,?)').run(record.id, JSON.stringify(record), record.mode !== 'translation' && record.result.degraded ? null : reuseKey, record.createdAt) }
   reuse(key: string): AnalysisRecord | undefined { return this.readRecord(this.db.connection.prepare('SELECT record FROM sentence_analyses WHERE reuse_key=? ORDER BY created_at DESC, rowid DESC LIMIT 1').get(key)) }
   get(id: string): AnalysisRecord | undefined { return this.readRecord(this.db.connection.prepare('SELECT record FROM sentence_analyses WHERE id=?').get(id)) }
   history(offset: number, limit: number): AnalysisHistory {

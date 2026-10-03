@@ -21,7 +21,10 @@ net.fetch = async (url, init) => {
   if (['ai.example', 'generativelanguage.googleapis.com', 'openrouter.ai'].includes(new URL(url).hostname)) {
     if (init.redirect !== 'error') throw new Error('AI redirects must be disabled')
     const body = JSON.parse(init.body), gemini = path.endsWith(':generateContent')
-    const text = JSON.parse(gemini ? body.contents[0].parts[0].text : body.messages[1].content).text
+    const prompt = gemini ? body.systemInstruction.parts[0].text : body.messages[0].content
+    const translating = prompt.startsWith('Translate the input from English')
+    const input = gemini ? body.contents[0].parts[0].text : body.messages[1].content
+    const text = translating ? input : JSON.parse(input).text
     globalThis.momoMock.calls.push({ path, body, ai: true })
     if (globalThis.momoMock.aiMode === 'pending') return new Promise(resolve => { globalThis.momoMock.resolveAi = resolve })
     if (globalThis.momoMock.aiMode === 'auth') return new Response('{}', { status: 401 })
@@ -35,7 +38,7 @@ net.fetch = async (url, init) => {
         { id: 'subject', parentId: 'clause', kind: 'component', role: '主语', quotes: [{ text: 'you', occurrence: 1 }], explanation: 'you 是从句主语。', target: '' }
       ] : [], grammar: ['先识别主语和谓语。'], vocabulary: original.includes('apple') ? [{ word: 'apple', lemma: 'apple', meaning: '苹果' }] : [], notes: []
     })) }
-    const content = JSON.stringify(result)
+    const content = translating ? text.split(/(\n+)/).map(part => /^\n+$/.test(part) ? part : part.includes('They') ? '它们飞翔。' : part.includes('apple') ? '我吃你给我的那个苹果。' : '鸟儿歌唱。').join('') : JSON.stringify(result)
     return new Response(JSON.stringify(gemini ? { modelVersion: 'mock-gemini', candidates: [{ content: { parts: [{ text: content }] }, finishReason: 'STOP' }] } : { model: 'mock-openai', choices: [{ message: { content }, finish_reason: 'stop' }] }))
   }
   if (new URL(url).origin === 'https://uapis.cn' && path === '/api/v1/dictionary/lookup') {

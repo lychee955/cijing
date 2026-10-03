@@ -1,18 +1,19 @@
 import { z } from 'zod'
 import { randomUUID } from 'node:crypto'
 import type { AiUsage, OutputMode } from '../../shared/ai'
+import type { AnalysisMode } from '../../shared/analysis'
 import type { AiSnapshot } from '../storage/ai-store'
 import { AiError, apiErrorDetails } from './errors'
 import { geminiSchema, jsonSchema } from './schema'
 import type { AiLog } from './logging'
 export type AiFetch = (url: string, init: RequestInit) => Promise<Response>
 export interface Generation { text: string; model?: string; finishReason: string; usage?: AiUsage }
-export interface AiAdapter { generate(snapshot: AiSnapshot, prompt: string, input: string, mode: OutputMode, signal: AbortSignal): Promise<Generation> }
+export interface AiAdapter { generate(snapshot: AiSnapshot, prompt: string, input: string, mode: OutputMode, signal: AbortSignal, purpose?: AnalysisMode): Promise<Generation> }
 const usageNumber = z.number().int().nonnegative().optional()
 const openaiResponse = z.object({ model: z.string().optional(), choices: z.array(z.object({ finish_reason: z.string().nullable(), message: z.object({ content: z.string().nullable().optional(), refusal: z.string().nullable().optional() }) })), usage: z.object({ prompt_tokens: usageNumber, completion_tokens: usageNumber, total_tokens: usageNumber, completion_tokens_details: z.object({ reasoning_tokens: usageNumber }).optional() }).optional() })
 const geminiResponse = z.object({ modelVersion: z.string().optional(), promptFeedback: z.object({ blockReason: z.string().optional() }).optional(), candidates: z.array(z.object({ finishReason: z.string().optional(), content: z.object({ parts: z.array(z.object({ text: z.string().optional(), thought: z.boolean().optional() })) }).optional() })).optional(), usageMetadata: z.object({ promptTokenCount: usageNumber, candidatesTokenCount: usageNumber, totalTokenCount: usageNumber, thoughtsTokenCount: usageNumber }).optional() }).refine(r => r.candidates !== undefined || r.promptFeedback !== undefined)
 function truncationDetails(reason: string, characters: number, output?: number, reasoning?: number): string {
-  return `服务结束原因：${reason}\n应用未发送输出长度上限，生成由服务端结束。\n输出用量：${output ?? '未知'} Token\n推理用量：${reasoning ?? '未知'} Token\n分析正文：${characters} 字符`
+  return `服务结束原因：${reason}\n应用未发送输出长度上限，生成由服务端结束。\n输出用量：${output ?? '未知'} Token\n推理用量：${reasoning ?? '未知'} Token\n返回正文：${characters} 字符`
 }
 async function readBody(response: Response): Promise<string> {
   if (Number(response.headers.get('content-length')) > 2_000_000) throw new AiError('AI_FORMAT')
@@ -28,7 +29,7 @@ export function retryAfter(value: string | null): number | undefined {
 }
 abstract class HttpAdapter implements AiAdapter {
   constructor(private readonly fetcher: AiFetch, private readonly logger: AiLog = () => {}) {}
-  abstract generate(s: AiSnapshot, prompt: string, input: string, mode: OutputMode, signal: AbortSignal): Promise<Generation>
+  abstract generate(s: AiSnapshot, prompt: string, input: string, mode: OutputMode, signal: AbortSignal, purpose?: AnalysisMode): Promise<Generation>
   protected async request(snapshot: AiSnapshot, url: string, headers: Record<string, string>, body: unknown, mode: OutputMode, signal: AbortSignal): Promise<unknown> {
     const requestId = randomUUID(), startedAt = Date.now()
     const context = { requestId, profileId: snapshot.profile.id, protocol: snapshot.profile.protocol, model: snapshot.profile.model, outputMode: mode, url }
@@ -61,9 +62,9 @@ abstract class HttpAdapter implements AiAdapter {
   }
 }
 export class OpenAiAdapter extends HttpAdapter {
-  async generate(s: AiSnapshot, prompt: string, input: string, mode: OutputMode, signal: AbortSignal): Promise<Generation> {
+  async generate(s: AiSnapshot, prompt: string, input: string, mode: OutputMode, signal: AbortSignal, purpose: AnalysisMode = 'detailed'): Promise<Generation> {
     const format = mode === 'schema' ? { type: 'json_schema', json_schema: { name: 'sentence_analysis', strict: true, schema: jsonSchema } } : { type: 'json_object' }
-    const body = { model: s.profile.model, messages: [{ role: 'system', content: prompt }, { role: 'user', content: JSON.stringify({ text: input }) }], ...(mode === 'text' ? {} : { response_format: format }) }
+    const body = { model: s.profile.model, messages: [{ role: 'system', content: prompt }, { role: 'user', content: purpose === 'translation' ? input : JSON.stringify({ text: input }) }], ...(mode === 'text' ? {} : { response_format: format }) }
     const parsed = openaiResponse.safeParse(await this.request(s, `${s.profile.baseUrl}/chat/completions`, { Authorization: `Bearer ${s.key}` }, body, mode, signal))
     if (!parsed.success) throw new AiError('AI_FORMAT')
     const r = parsed.data, c = r.choices[0]
@@ -75,9 +76,9 @@ export class OpenAiAdapter extends HttpAdapter {
   }
 }
 export class GeminiAdapter extends HttpAdapter {
-  async generate(s: AiSnapshot, prompt: string, input: string, mode: OutputMode, signal: AbortSignal): Promise<Generation> {
+  async generate(s: AiSnapshot, prompt: string, input: string, mode: OutputMode, signal: AbortSignal, purpose: AnalysisMode = 'detailed'): Promise<Generation> {
     const model = s.profile.model.replace(/^models\//, '')
-    const body = { systemInstruction: { parts: [{ text: prompt }] }, contents: [{ role: 'user', parts: [{ text: JSON.stringify({ text: input }) }] }], generationConfig: { ...(mode === 'text' ? {} : { responseMimeType: 'application/json' }), ...(mode === 'schema' ? { responseJsonSchema: geminiSchema(jsonSchema) } : {}) } }
+    const body = { systemInstruction: { parts: [{ text: prompt }] }, contents: [{ role: 'user', parts: [{ text: purpose === 'translation' ? input : JSON.stringify({ text: input }) }] }], generationConfig: { ...(mode === 'text' ? {} : { responseMimeType: 'application/json' }), ...(mode === 'schema' ? { responseJsonSchema: geminiSchema(jsonSchema) } : {}) } }
     const parsed = geminiResponse.safeParse(await this.request(s, `${s.profile.baseUrl}/models/${encodeURIComponent(model)}:generateContent`, { 'x-goog-api-key': s.key }, body, mode, signal))
     if (!parsed.success) throw new AiError('AI_FORMAT')
     const r = parsed.data, c = r.candidates?.[0]

@@ -99,7 +99,7 @@ onUnmounted(() => { clearKey(); window.removeEventListener('blur', clearKey) })
     </form>
     </dialog>
     <label>补充提示词<textarea v-model="supplement" rows="3" maxlength="4000" placeholder="例如：第一次出现术语时给出解释" /></label>
-    <p class="subtle">内置基础提示词固定要求中文、先主干后修饰、指出歧义和原文错误，补充偏好不会改变结果字段。</p>
+    <p class="subtle">内置基础提示词固定要求中文、先主干后修饰、指出歧义和原文错误，补充偏好不会改变结果字段；仅翻译模式使用独立提示词，不附带这些偏好。</p>
     <div class="actions"><button :disabled="testing" @click="saveSupplement()">保存提示词偏好</button><button :disabled="testing" @click="saveSupplement(true)">恢复默认提示词</button></div>
   </section>
 </template>

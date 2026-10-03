@@ -108,7 +108,7 @@ it.each(['openai', 'gemini'] as const)('%s reports provider truncation, reasonin
       expect(result.error.code).toBe('AI_TRUNCATED')
       expect(result.error.message).toContain(protocol === 'openai' ? '服务结束原因：length' : '服务结束原因：MAX_TOKENS')
       expect(result.error.message).toContain('推理用量：8192 Token')
-      expect(result.error.message).toContain('分析正文：0 字符')
+      expect(result.error.message).toContain('返回正文：0 字符')
       expect(result.error.message).toContain('应用未发送输出长度上限，生成由服务端结束。')
       expect(result.error.message).not.toContain('private-thought')
     }

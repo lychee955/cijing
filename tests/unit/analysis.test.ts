@@ -197,7 +197,8 @@ describe('generation orchestration', () => {
   })
   it('retains degraded explanations in history but never automatically reuses them', async () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(output('Birds sing.', [node('bad', 'absent')])) }, finish_reason: 'stop' }] }))), { service, store } = setup(fetcher)
-    expect((await service.analyze(request())).record.result.degraded).toBe(true); expect((await service.analyze(request())).reused).toBe(false); expect(fetcher).toHaveBeenCalledTimes(2); expect(store.history(0, 20).total).toBe(2)
+    const record = (await service.analyze(request())).record
+    expect(record.mode).toBe('detailed'); expect(record.mode !== 'translation' && record.result.degraded).toBe(true); expect((await service.analyze(request())).reused).toBe(false); expect(fetcher).toHaveBeenCalledTimes(2); expect(store.history(0, 20).total).toBe(2)
   })
   it('connection testing does not save history and sanitized errors reveal no secrets', async () => {
     const { service, profile, store } = setup(); expect(await service.test(profile.id)).toMatchObject({ attempts: 1, mode: 'text' }); expect(store.history(0, 20).total).toBe(0)
