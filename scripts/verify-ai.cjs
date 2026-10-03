@@ -21,8 +21,7 @@ delete env.ELECTRON_RUN_AS_NODE
 // encrypted metadata to an isolated directory so the real app is never mutated.
 const verificationData = mkdtempSync(join(tmpdir(), 'cijing-ai-verification-'))
 if (process.platform === 'win32') {
-  const currentData = join(process.env.APPDATA, 'cijing')
-  const dataPath = existsSync(join(currentData, 'momo.sqlite3')) || !existsSync(join(process.env.APPDATA, 'momo-desktop')) ? currentData : join(process.env.APPDATA, 'momo-desktop')
+  const dataPath = join(process.env.APPDATA, 'cijing')
   const localState = join(dataPath, 'Local State')
   if (existsSync(localState)) copyFileSync(localState, join(verificationData, 'Local State'))
 }

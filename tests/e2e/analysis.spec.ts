@@ -112,7 +112,7 @@ test('create, test, nested analysis without Maimemo, lookup and return, cache, r
   await page.getByRole('button', { name: '分析句子', exact: true }).click(); await expect(page.locator('.analysis-result')).toContainText('复用已完成分析'); expect(await aiCalls()).toBe(2)
   await app.close(); await launch(); await page.getByRole('button', { name: '句子分析', exact: true }).click(); await page.getByText('分析历史（1）', { exact: true }).click(); await page.getByRole('button', { name: '查看分析', exact: true }).click()
   await expect(page.locator('.analysis-result')).toContainText('mock-openai'); expect(await aiCalls()).toBe(0)
-  const file = await readFile(join(userData, 'momo.sqlite3')); expect(file.toString()).not.toContain('dummy-ai-key')
+  const file = await readFile(join(userData, 'cijing.sqlite3')); expect(file.toString()).not.toContain('dummy-ai-key')
   await page.getByRole('button', { name: '删除分析', exact: true }).click(); await page.getByRole('button', { name: '确认删除分析', exact: true }).click(); await expect(page.getByText('分析历史（0）', { exact: true })).toBeVisible()
 })
 

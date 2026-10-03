@@ -7,7 +7,7 @@ import { OperationsDatabase } from '../src/main/storage/database'
 import { AiStore } from '../src/main/storage/ai-store'
 import { AnalysisService } from '../src/main/services/analysis-service'
 import { aiResult } from '../src/main/ai/errors'
-import { resolveDataPath } from '../src/main/storage/data-path'
+import { DATABASE_FILENAME, resolveDataPath } from '../src/main/storage/data-path'
 
 const option = (name: string) => { const at = process.argv.indexOf(name); return at >= 0 ? process.argv[at + 1] : undefined }
 const verificationData = option('--verification-data')
@@ -25,7 +25,8 @@ void app.whenReady().then(async () => {
   const name = option('--profile'), model = option('--model')
   if (!name || !model) throw new Error('missing selection')
   // Read the user's configuration only. All verification writes use an in-memory database.
-  const existing = new Database(join(resolveDataPath(app.getPath('appData')), 'momo.sqlite3'), { readonly: true, fileMustExist: true })
+  const databasePath = join(resolveDataPath(app.getPath('appData')), DATABASE_FILENAME)
+  const existing = new Database(databasePath, { readonly: true, fileMustExist: true })
   const row = existing.prepare('SELECT * FROM ai_profiles WHERE name=? AND model=?').all(name, model) as Record<string, unknown>[]
   if (row.length !== 1) { existing.close(); console.error('配置名称与模型 ID 必须匹配唯一的已保存配置。'); app.exit(1); return }
   const supplement = existing.prepare("SELECT value FROM settings WHERE key='aiSupplement'").get() as { value: string } | undefined

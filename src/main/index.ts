@@ -19,7 +19,7 @@ import { AnalysisService } from './services/analysis-service'
 import { registerAnalysisIpc } from './ipc/analysis'
 import { createAiLogger } from './ai/logging'
 import brand from '../shared/brand.json'
-import { resolveDataPath } from './storage/data-path'
+import { DATABASE_FILENAME, resolveDataPath } from './storage/data-path'
 
 let windows: WindowManager | undefined
 let tray: Tray | null = null
@@ -39,7 +39,7 @@ else {
     session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false))
     session.defaultSession.setPermissionCheckHandler(() => false)
     mkdirSync(app.getPath('userData'), { recursive: true })
-    database = new OperationsDatabase(join(app.getPath('userData'), 'momo.sqlite3'))
+    database = new OperationsDatabase(join(app.getPath('userData'), DATABASE_FILENAME))
     database.recoverInterrupted()
     const settings = new SettingsStore(database)
     const credentials = new CredentialStore(join(app.getPath('userData'), 'credentials.v1.json'), safeStorage)
@@ -74,7 +74,7 @@ else {
     }
     registerIpc(windows.window, windows.allowedUrl, credentials, vocabulary, study, account, database, desktop)
     analysis = new AnalysisService(new AiStore(database, safeStorage), (url, init) => net.fetch(url, init),
-      createAiLogger(join(app.getPath('userData'), 'logs', 'ai.log'), (process.env.CIJING_AI_LOG_CONTENT ?? process.env.MOMO_AI_LOG_CONTENT) !== '0'))
+      createAiLogger(join(app.getPath('userData'), 'logs', 'ai.log'), process.env.CIJING_AI_LOG_CONTENT !== '0'))
     registerAnalysisIpc(windows.window, windows.allowedUrl, analysis)
     windows.load()
     void account.recover()

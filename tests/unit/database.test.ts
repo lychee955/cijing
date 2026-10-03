@@ -10,7 +10,7 @@ import { ClientError } from '../../src/main/maimemo/errors'
 const handles: OperationsDatabase[] = [], directories: string[] = []
 const credentials = { profileId: 'profile1', token: 'dummy' }, word = { id: 'v1', spelling: 'apple' }
 function open(path = ':memory:') { const database = new OperationsDatabase(path); handles.push(database); return database }
-function path() { const dir = mkdtempSync(join(tmpdir(), 'momo-db-test-')); directories.push(dir); return join(dir, 'momo.sqlite3') }
+function path() { const dir = mkdtempSync(join(tmpdir(), 'cijing-db-test-')); directories.push(dir); return join(dir, 'cijing.sqlite3') }
 function setup(database: OperationsDatabase) {
   const client = new MaimemoClient(async () => { throw new Error('No network') })
   const add = vi.spyOn(client, 'add').mockResolvedValue(1)

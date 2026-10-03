@@ -14,7 +14,7 @@ const cleanup: Array<() => void> = []
 afterEach(() => { cleanup.splice(0).forEach(action => action()) })
 function setup() {
   const dir = mkdtempSync(join(tmpdir(), 'momo-session-test-'))
-  const db = new OperationsDatabase(join(dir, 'momo.sqlite3'))
+  const db = new OperationsDatabase(join(dir, 'cijing.sqlite3'))
   cleanup.push(() => { db.close(); rmSync(dir, { recursive: true, force: true }) })
   const credentials = new CredentialStore(join(dir, 'credentials.json'), {
     isEncryptionAvailable: () => true, encryptString: value => Buffer.from(value), decryptString: value => value.toString()

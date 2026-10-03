@@ -27,7 +27,7 @@ npm run dev
 
 `npm ci` 的项目 postinstall 会下载锁定版本的 Electron，并为其重建 `better-sqlite3`。网络需允许访问 npm registry 和 Electron/SQLite 官方发布下载地址；如果安装时禁用了脚本，补运行 `node node_modules/electron/install.js` 和 `npm run rebuild`。原生模块缺少对应平台预构建文件时，需要该平台的 C++ 构建工具。
 
-更新 Electron 或安装依赖后如遇 `NODE_MODULE_VERSION` 不匹配，运行 `npm run rebuild`。M1 旧进程如仍在运行，请从窗口退出后启动 M2。
+更新 Electron 或安装依赖后如遇 `NODE_MODULE_VERSION` 不匹配，运行 `npm run rebuild`。
 
 构建后运行：
 
@@ -84,7 +84,7 @@ Token 经 Electron `safeStorage` 加密写入应用数据目录下的 `credentia
 
 AI 密钥经 safeStorage 加密，保存在 SQLite 的独立字段，界面不读取已保存明文。原文、有效提示词快照和讲解作为本地普通数据保存，可以从分析页删除。升级自动迁移数据库到版本 2，保留原墨墨配置和操作历史。
 
-AI 请求和响应会打印到启动终端（`[ai-http]`），同时写入应用数据目录的 `logs/ai.log`。新安装默认在 `%APPDATA%\cijing\logs\ai.log`，旧版升级继续使用 `%APPDATA%\momo-desktop\logs\ai.log`。每条日志包含时间、请求 ID、模型、地址、请求体、响应状态/响应体、耗时及 `Retry-After`；本地冷却拦截记为 `cooldown`，`requestSent: false` 表示未再发请求。密钥、鉴权头和 Cookie 会遮盖；原文、提示词和模型回答会进入日志。单个请求/响应体超过 64,000 字符会截断，文件达到约 4 MB 时保留一份 `ai.log.1`。启动前设置 `CIJING_AI_LOG_CONTENT=0` 可关闭请求/响应体记录，仍记录状态和耗时；兼容旧变量 `MOMO_AI_LOG_CONTENT`。
+AI 请求和响应会打印到启动终端（`[ai-http]`），同时写入应用数据目录的 `logs/ai.log`。Windows 默认在 `%APPDATA%\cijing\logs\ai.log`。每条日志包含时间、请求 ID、模型、地址、请求体、响应状态/响应体、耗时及 `Retry-After`；本地冷却拦截记为 `cooldown`，`requestSent: false` 表示未再发请求。密钥、鉴权头和 Cookie 会遮盖；原文、提示词和模型回答会进入日志。单个请求/响应体超过 64,000 字符会截断，文件达到约 4 MB 时保留一份 `ai.log.1`。启动前设置 `CIJING_AI_LOG_CONTENT=0` 可关闭请求/响应体记录，仍记录状态和耗时。
 
 429 表示限流或模型繁忙，等待提示来自服务端 `Retry-After` 或本地冷却剩余时间；等候结束后仍可能受限。402 且没有等待时间时会单独提示余额或额度不足。具体原因查看响应体的 `error.message` 和 `error.metadata`。
 
@@ -103,16 +103,14 @@ node scripts/verify-ai.cjs --profile "配置名称" --model "模型ID" --quality
 
 ## 数据与恢复
 
-SQLite 文件为应用数据目录下的 `momo.sqlite3`，只由主进程访问，包含版本化迁移、配置、操作日志和桌面设置。文件名为兼容旧版保留。Windows 新安装默认使用 `%APPDATA%/cijing/`；如果检测到旧版 `%APPDATA%/momo-desktop/` 且新目录尚无数据库，则继续使用完整旧目录，保留 Token、AI 密钥、历史、设置和系统加密元数据。显式指定的数据目录优先。保留 SQLite 主文件及可能存在的 `-wal`、`-shm` 文件；不要在应用运行时手动替换数据库。
+SQLite 文件为应用数据目录下的 `cijing.sqlite3`，只由主进程访问，包含版本化迁移、配置、操作日志和桌面设置。Windows 默认使用 `%APPDATA%/cijing/`，显式指定的数据目录优先。项目尚未发布，不提供旧开发版本的数据目录探测、回退或迁移。保留 SQLite 主文件及可能存在的 `-wal`、`-shm` 文件；不要在应用运行时手动替换数据库。
 
 发送添加请求前会提交一条 `submitting` 日志。正常退出或崩溃后，重启将遗留日志转换成 `uncertain`，最多自动确认当前配置的 5 条待确认操作；遇鉴权、网络或限流错误停止本轮，其余记录可在历史页手动确认。整个恢复流程只读，不自动重新添加。
-
-M1 已保存的加密 Token 会直接复用。M1 的历史只存在旧进程内存中，无法补入 M2 数据库；M2 历史从升级后的首次操作开始记录。
 
 ## 验证
 
 ```sh
-npm test           # Vitest：188 项测试，包括真实 SQLite 临时数据库
+npm test           # Vitest：187 项测试，包括真实 SQLite 临时数据库
 npm run build      # strict 类型检查与三个进程的生产构建
 npm run test:e2e   # Playwright：原桌面流程与句子分析验收（真实音频验证默认跳过）
 ```
