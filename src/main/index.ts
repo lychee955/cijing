@@ -1,10 +1,11 @@
-import { app, dialog, globalShortcut, net, safeStorage, session, type Tray } from 'electron'
+import { app, dialog, globalShortcut, net, safeStorage, session, shell, type Tray } from 'electron'
 import { join } from 'node:path'
-import { mkdirSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, renameSync, statSync } from 'node:fs'
+import { release as systemRelease } from 'node:os'
 import { MaimemoClient } from './maimemo/client'
 import { UapiDictionary } from './dictionary/uapi'
 import { CredentialStore } from './storage/credential-store'
-import { OperationsDatabase } from './storage/database'
+import { DatabaseIntegrityError, OperationsDatabase } from './storage/database'
 import { SettingsStore } from './storage/settings'
 import { VocabularyService } from './services/vocabulary-service'
 import { StudyService } from './services/study-service'
@@ -20,12 +21,30 @@ import { registerAnalysisIpc } from './ipc/analysis'
 import { createAiLogger } from './ai/logging'
 import brand from '../shared/brand.json'
 import { DATABASE_FILENAME, resolveDataPath } from './storage/data-path'
+import { detectEnvironment } from './updates/environment'
+import { GithubReleaseSource } from './updates/release-source'
+import { UpdateService } from './updates/service'
+import { NsisInstaller } from './updates/adapters/nsis'
+import { ExitGate } from './updates/exit-gate'
+import { registerUpdateIpc } from './ipc/updates'
 
 let windows: WindowManager | undefined
 let tray: Tray | null = null
 let database: OperationsDatabase | undefined
 let shortcuts: ShortcutManager | undefined
 let analysis: AnalysisService | undefined
+let updates: UpdateService | undefined
+let cleanedUp = false
+function cleanup(): void {
+  if (cleanedUp) return
+  windows?.prepareUpdateExit()
+  analysis?.cancel()
+  shortcuts?.dispose()
+  tray?.destroy()
+  windows?.dispose()
+  database?.close()
+  cleanedUp = true
+}
 app.setName(brand.packageName)
 const dataPath = resolveDataPath(app.getPath('appData'), app.getPath('userData'))
 if (dataPath !== app.getPath('userData')) { app.setPath('userData', dataPath); app.setPath('sessionData', dataPath) }
@@ -72,21 +91,52 @@ else {
       devTools: () => windows!.window.webContents.openDevTools({ mode: 'detach' }),
       quit: () => { setTimeout(() => app.quit(), 50) }
     }
-    registerIpc(windows.window, windows.allowedUrl, credentials, vocabulary, study, account, database, desktop)
+    const gate = new ExitGate()
+    registerIpc(windows.window, windows.allowedUrl, credentials, vocabulary, study, account, database, desktop, gate)
     analysis = new AnalysisService(new AiStore(database, safeStorage), (url, init) => net.fetch(url, init),
       createAiLogger(join(app.getPath('userData'), 'logs', 'ai.log'), process.env.CIJING_AI_LOG_CONTENT !== '0'))
-    registerAnalysisIpc(windows.window, windows.allowedUrl, analysis)
+    registerAnalysisIpc(windows.window, windows.allowedUrl, analysis, gate)
+    const environment = detectEnvironment({ packaged: app.isPackaged, version: app.getVersion(), platform: process.platform,
+      arch: process.arch, systemVersion: systemRelease(), resourcesPath: process.resourcesPath, execPath: process.execPath,
+      portable: process.env.PORTABLE_EXECUTABLE_FILE })
+    const logPath = join(app.getPath('userData'), 'logs', 'updates.log')
+    const logUpdate = (entry: object) => {
+      try {
+        mkdirSync(join(app.getPath('userData'), 'logs'), { recursive: true })
+        if (existsSync(logPath) && statSync(logPath).size > 1_000_000) renameSync(logPath, logPath + '.1')
+        appendFileSync(logPath, JSON.stringify({ at: new Date().toISOString(), ...entry }) + '\n')
+      } catch { /* Updating must not depend on diagnostic logging. */ }
+    }
+    logUpdate({ phase: 'startup', version: environment.version, installation: environment.installation, canInstall: environment.canInstall })
+    updates = new UpdateService(environment, {
+      source: new GithubReleaseSource((url, init) => net.fetch(url, init)),
+      installer: environment.canInstall ? new NsisInstaller(environment) : undefined,
+      gate, busy: () => account.busy || !!analysis?.busy,
+      openExternal: url => shell.openExternal(url), log: logUpdate,
+      changed: status => { if (windows && !windows.window.isDestroyed()) windows.window.webContents.send(channels.updateChanged, status) },
+      quitForUpdate: install => {
+        setTimeout(async () => {
+          try { cleanup(); await install(); logUpdate({ phase: 'installer-started' }); app.quit() }
+          catch {
+            logUpdate({ phase: 'install-failed' })
+            dialog.showErrorBox('更新安装失败', '无法启动安装程序。词境将重新启动，请重试或通过发布页面手动安装。')
+            app.relaunch(); app.exit(1)
+          }
+        }, 100)
+      }
+    })
+    registerUpdateIpc(windows.window, windows.allowedUrl, updates)
+    updates.start()
     windows.load()
     void account.recover()
-  }).catch(() => {
-    dialog.showErrorBox('词境启动失败', '无法初始化本地数据或桌面窗口。请检查应用数据目录权限、磁盘空间和 SQLite 原生依赖版本；已有数据不会被重置。')
+  }).catch(error => {
+    dialog.showErrorBox('词境启动失败', error instanceof DatabaseIntegrityError
+      ? '本地数据无法完整读取，已停止启动以保护记录。请保留应用数据目录以便排查和恢复。'
+      : '无法初始化本地数据或桌面窗口。请检查应用数据目录权限、磁盘空间和 SQLite 原生依赖版本；已有数据不会被重置。')
     app.quit()
   })
   app.on('will-quit', () => {
-    analysis?.cancel()
-    shortcuts?.dispose()
-    tray?.destroy()
-    windows?.dispose()
-    database?.close()
+    updates?.dispose()
+    cleanup()
   })
 }

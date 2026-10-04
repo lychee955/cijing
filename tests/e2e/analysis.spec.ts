@@ -2,6 +2,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { channels } from '../../src/shared/contracts'
 let app: ElectronApplication, page: Page, userData: string
 test.setTimeout(90_000)
 async function launch() {
@@ -31,6 +32,30 @@ async function analyze(text = 'I eat the apple that you gave me.') {
 }
 test.beforeEach(async () => { userData = await mkdtemp(join(tmpdir(), 'momo-analysis-e2e-')); await launch() })
 test.afterEach(async () => { await app?.close(); await rm(userData, { recursive: true, force: true }) })
+
+test('read failures show recovery actions instead of missing AI configuration or zero history', async () => {
+  await profile()
+  const saved = await page.evaluate(() => window.desktop.ai.configuration())
+  await app.evaluate(({ ipcMain }, channels) => {
+    for (const channel of [channels.aiConfig, channels.analysisHistory]) {
+      ipcMain.removeHandler(channel)
+      ipcMain.handle(channel, () => ({ ok: false, error: { code: 'AI_STORAGE', message: '本地数据读取失败' } }))
+    }
+  }, channels)
+  await page.getByRole('button', { name: '句子分析', exact: true }).click()
+  await expect(page.getByText('AI 配置读取失败：', { exact: false })).toBeVisible()
+  await expect(page.getByText('请先在设置中配置 AI 服务。句子分析无需墨墨 Token。')).toHaveCount(0)
+  await expect(page.locator('.analysis-history summary')).toHaveText('分析历史（读取失败）')
+  await page.getByRole('button', { name: '设置', exact: true }).click()
+  await expect(page.locator('.ai-settings [role=alert]')).toContainText('AI 配置读取失败')
+  await app.evaluate(({ ipcMain }, { channel, saved }) => {
+    ipcMain.removeHandler(channel)
+    ipcMain.handle(channel, () => saved)
+  }, { channel: channels.aiConfig, saved })
+  await page.getByRole('button', { name: '重新读取 AI 配置' }).click()
+  await expect(page.locator('.ai-settings [role=alert]')).toHaveCount(0)
+  await expect(page.locator('.ai-profile')).toHaveCount(1)
+})
 
 test('profile dialogs support templates, cancellation, validation and editing without exposing saved keys', async () => {
   async function checkFieldSpacing() {

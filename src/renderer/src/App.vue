@@ -5,6 +5,7 @@ import SettingsView from './views/SettingsView.vue'
 import HistoryView from './views/HistoryView.vue'
 import AnalysisView from './views/AnalysisView.vue'
 import BrandLogo from './components/BrandLogo.vue'
+import UpdateEntry from './components/UpdateEntry.vue'
 import brand from '../../shared/brand.json'
 import { useSearchStore } from './stores/search'
 import { useDesktopStore } from './stores/desktop'
@@ -41,7 +42,7 @@ onUnmounted(() => { unsubscribe?.(); unsubscribeChanged?.(); window.removeEventL
 <template>
   <div class="shell">
     <header class="app-header">
-      <div class="brand"><BrandLogo class="brand-mark" /><div><strong>{{ brand.name }}</strong><span class="brand-sub">{{ brand.subtitle }}</span></div></div>
+      <div class="brand-block"><div class="brand"><BrandLogo class="brand-mark" /><div><strong>{{ brand.name }}</strong><span class="brand-sub">{{ brand.subtitle }}</span></div></div><UpdateEntry /></div>
       <nav aria-label="主导航">
         <button :class="{ active: page === 'search' }" @click="page = 'search'">查词</button>
         <button :class="{ active: page === 'analysis' }" @click="page = 'analysis'">句子分析</button>

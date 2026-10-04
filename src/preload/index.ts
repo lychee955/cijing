@@ -2,6 +2,16 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { channels, type DesktopApi } from '../shared/contracts'
 
 const api: DesktopApi = {
+  updates: {
+    status: () => ipcRenderer.invoke(channels.updateStatus), check: () => ipcRenderer.invoke(channels.updateCheck),
+    download: () => ipcRenderer.invoke(channels.updateDownload), install: () => ipcRenderer.invoke(channels.updateInstall),
+    openRelease: () => ipcRenderer.invoke(channels.updateOpenRelease),
+    onChanged: callback => {
+      const listener = (_event: Electron.IpcRendererEvent, status: import('../shared/update').UpdateStatus) => callback(status)
+      ipcRenderer.on(channels.updateChanged, listener)
+      return () => ipcRenderer.removeListener(channels.updateChanged, listener)
+    }
+  },
   ai: {
     configuration: () => ipcRenderer.invoke(channels.aiConfig), templates: () => ipcRenderer.invoke(channels.aiTemplates),
     save: input => ipcRenderer.invoke(channels.aiSave, input), delete: id => ipcRenderer.invoke(channels.aiDelete, id),

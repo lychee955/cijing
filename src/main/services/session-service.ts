@@ -7,6 +7,7 @@ import type { VocabularyService } from './vocabulary-service'
 
 export class SessionService {
   private activeRequests = 0
+  get busy(): boolean { return this.activeRequests > 0 || this.recovering }
   private verifiedProfile: string | null = null
   recovering = false
   constructor(private readonly credentials: CredentialStore, private readonly database: OperationsDatabase,

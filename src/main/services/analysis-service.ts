@@ -13,6 +13,7 @@ export const analysisRequestSchema = z.object({ requestId: z.string().uuid(), te
 interface Task { id: string; profileId: string; controller: AbortController; timer: ReturnType<typeof setTimeout>; timedOut: boolean; promise?: Promise<AnalysisResponse> }
 export class AnalysisService {
   private task?: Task
+  get busy(): boolean { return !!this.task }
   private readonly adapters
   private readonly cooldown = new Map<string, number>()
   constructor(readonly store: AiStore, fetcher: AiFetch, private readonly logger: AiLog = () => {}) { this.adapters = adapterRegistry(fetcher, logger) }

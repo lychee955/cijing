@@ -2,8 +2,11 @@ import type { AddOutcome, CredentialStatus, Vocabulary, HistoryPage, HistoryQuer
 import type { Result } from './result'
 import type { AiConfiguration, AiProfile, AiProfileInput, AiTemplate, AiTestResult } from './ai'
 import type { AnalysisRequest, AnalysisResponse, AnalysisRecord, AnalysisHistory } from './analysis'
+import type { UpdateStatus } from './update'
 
 export const channels = {
+  updateStatus: 'updates:status', updateCheck: 'updates:check', updateDownload: 'updates:download',
+  updateInstall: 'updates:install', updateOpenRelease: 'updates:open-release', updateChanged: 'updates:changed',
   aiConfig: 'ai:config', aiTemplates: 'ai:templates', aiSave: 'ai:save', aiDelete: 'ai:delete', aiSelect: 'ai:select', aiSupplement: 'ai:supplement', aiTest: 'ai:test',
   analysisRun: 'analysis:run', analysisCancel: 'analysis:cancel', analysisHistory: 'analysis:history', analysisGet: 'analysis:get', analysisDelete: 'analysis:delete',
   credentialStatus: 'credentials:status',
@@ -27,6 +30,14 @@ export const channels = {
 } as const
 
 export interface DesktopApi {
+  updates: {
+    status(): Promise<Result<UpdateStatus>>
+    check(): Promise<Result<UpdateStatus>>
+    download(): Promise<Result<UpdateStatus>>
+    install(): Promise<Result<UpdateStatus>>
+    openRelease(): Promise<Result<UpdateStatus>>
+    onChanged(callback: (status: UpdateStatus) => void): () => void
+  }
   ai: {
     configuration(): Promise<Result<AiConfiguration>>
     templates(): Promise<Result<AiTemplate[]>>

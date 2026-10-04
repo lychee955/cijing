@@ -5,7 +5,8 @@ import { AiError, aiResult } from '../ai/errors'
 import { profileInputSchema, templates } from '../ai/config'
 import { AnalysisService, analysisRequestSchema } from '../services/analysis-service'
 import { validateSender } from './security'
-export function registerAnalysisIpc(window: BrowserWindow, allowedUrl: string, service: AnalysisService): void {
+import { ExitGate } from '../updates/exit-gate'
+export function registerAnalysisIpc(window: BrowserWindow, allowedUrl: string, service: AnalysisService, gate = new ExitGate()): void {
   const registered: string[] = []
   const handle = <T extends unknown[]>(channel: string, schema: z.ZodType<T>, action: (...args: T) => unknown) => {
     registered.push(channel)
@@ -13,7 +14,8 @@ export function registerAnalysisIpc(window: BrowserWindow, allowedUrl: string, s
       try { validateSender({ trustedContents: event.sender === window.webContents, mainFrame: event.senderFrame !== null && event.senderFrame === window.webContents.mainFrame, url: event.senderFrame?.url ?? '' }, allowedUrl) } catch { throw new AiError('FORBIDDEN') }
       const parsed = schema.safeParse(args)
       if (!parsed.success) throw new AiError('INVALID_INPUT')
-      return action(...parsed.data)
+      if (gate.closing) throw new AiError('AI_BUSY')
+      return gate.run(() => action(...parsed.data))
     }))
   }
   const id = z.string().uuid(), noArgs = z.tuple([])

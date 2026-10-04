@@ -51,6 +51,11 @@ test('settings developer-tools button opens DevTools without debug key bindings'
   expect(await opened()).toBe(false)
   await page.getByRole('button', { name: '开发者工具', exact: true }).click()
   await expect.poll(opened).toBe(true)
+  // Electron may report the frontend open before it has finished loading; closing in that interval can be ignored.
+  await expect.poll(() => app.evaluate(({ BrowserWindow }, id) => {
+    const contents = BrowserWindow.fromId(id)!.webContents.devToolsWebContents
+    return !!contents && !contents.isLoadingMainFrame()
+  }, windowId)).toBe(true)
   await app.evaluate(({ BrowserWindow }, id) => BrowserWindow.fromId(id)!.webContents.closeDevTools(), windowId)
   await expect.poll(opened).toBe(false)
   await page.getByRole('button', { name: '开发者工具', exact: true }).click()
@@ -64,7 +69,7 @@ test('encrypted credentials, sandboxed bridge, candidate selection, keyboard add
   expect(persisted).not.toContain('momo-e2e-dummy-token')
   expect(await page.evaluate(() => ({ node: typeof (window as unknown as { require?: unknown }).require,
     methods: Object.keys(window.desktop), credentials: Object.keys(window.desktop.credentials) })))
-    .toEqual({ node: 'undefined', methods: ['ai', 'analysis', 'credentials', 'vocabulary', 'study', 'history', 'desktop'], credentials: ['status', 'save', 'clear', 'copy', 'reveal', 'validate'] })
+    .toEqual({ node: 'undefined', methods: ['updates', 'ai', 'analysis', 'credentials', 'vocabulary', 'study', 'history', 'desktop'], credentials: ['status', 'save', 'clear', 'copy', 'reveal', 'validate'] })
   expect(await page.evaluate(() => typeof (window as unknown as { process?: unknown }).process)).toBe('undefined')
   expect(await page.evaluate(() => window.desktop.study.add('invented'))).toMatchObject({ ok: false, error: { code: 'UNKNOWN_WORD' } })
   expect(await page.evaluate(() => window.desktop.vocabulary.lookup(''))).toMatchObject({ ok: false, error: { code: 'INVALID_INPUT' } })

@@ -3,6 +3,24 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useAnalysisStore } from '../../src/renderer/src/stores/analysis'
 beforeEach(() => setActivePinia(createPinia()))
 afterEach(() => vi.unstubAllGlobals())
+it('distinguishes failed reads from empty data and clears read errors after retry', async () => {
+  const failure = { ok: false, error: { code: 'AI_STORAGE', message: '本地数据读取失败' } }
+  const configuration = vi.fn().mockResolvedValue(failure), history = vi.fn().mockResolvedValue(failure)
+  vi.stubGlobal('window', { desktop: { ai: { configuration }, analysis: { history } } })
+  const store = useAnalysisStore()
+  await Promise.all([store.refresh(), store.loadHistory()])
+  expect(store.configurationLoaded).toBe(false); expect(store.historyLoaded).toBe(false)
+  expect(store.configurationError).toBe(failure.error.message); expect(store.historyError).toBe(failure.error.message)
+  configuration.mockResolvedValue({ ok: true, data: { profiles: [{ id: 'saved' }], activeId: 'saved', supplement: 'kept' } })
+  history.mockResolvedValue({ ok: true, data: { items: [{ id: 'record' }], total: 1 } })
+  await Promise.all([store.refresh(), store.loadHistory()])
+  expect(store.configurationLoaded).toBe(true); expect(store.historyLoaded).toBe(true)
+  expect(store.configurationError).toBe(''); expect(store.historyError).toBe('')
+  configuration.mockRejectedValue(new Error('offline')); history.mockResolvedValue(failure)
+  await Promise.all([store.refresh(), store.loadHistory()])
+  expect(store.active?.id).toBe('saved'); expect(store.history[0]?.id).toBe('record')
+  expect(store.configurationError).not.toBe(''); expect(store.historyError).not.toBe('')
+})
 it('ignores cancelled renderer response and prevents duplicate clicks', async () => {
   let finish!: (v: unknown) => void
   const run = vi.fn(() => new Promise(r => { finish = r })), cancel = vi.fn().mockResolvedValue({ ok: true })

@@ -12,10 +12,20 @@ win:
   icon: build/icon.png
   target:
     - target: nsis
+      arch: [x64]
     - target: portable
+      arch: [x64]
+  verifyUpdateCodeSignature: true
+publish:
+  provider: github
+  owner: lychee955
+  repo: cijing
+  releaseType: draft
+electronUpdaterCompatibility: '>=6.8.9'
 nsis:
+  include: build/installer.nsh
   oneClick: false
   allowToChangeInstallationDirectory: true
-  artifactName: ${name}-${version}-setup.${ext}
+  artifactName: ${name}-${version}-win-${arch}-setup.${ext}
 portable:
-  artifactName: ${name}-${version}-portable.${ext}
+  artifactName: ${name}-${version}-win-${arch}-portable.${ext}

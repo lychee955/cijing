@@ -1,4 +1,5 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import { copyFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import Database from 'better-sqlite3'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -6,6 +7,8 @@ import { OperationsDatabase } from '../../src/main/storage/database'
 import { StudyService } from '../../src/main/services/study-service'
 import { MaimemoClient } from '../../src/main/maimemo/client'
 import { ClientError } from '../../src/main/maimemo/errors'
+import { initialMigration } from '../../src/main/storage/migrations/001-initial'
+import { analysisMigration } from '../../src/main/storage/migrations/002-analysis'
 
 const handles: OperationsDatabase[] = [], directories: string[] = []
 const credentials = { profileId: 'profile1', token: 'dummy' }, word = { id: 'v1', spelling: 'apple' }
@@ -20,6 +23,28 @@ function setup(database: OperationsDatabase) {
 afterEach(() => { for (const db of handles.splice(0)) db.close(); for (const dir of directories.splice(0)) rmSync(dir, { recursive: true, force: true }) })
 
 describe('SQLite persistence and recovery', () => {
+  it('rejects a mismatched WAL without checkpointing it over the intact main database', () => {
+    const legacyFile = path(), source = new Database(legacyFile)
+    try {
+      source.exec(initialMigration)
+      source.prepare('INSERT INTO settings VALUES (?,?)').run('padding', JSON.stringify('x'.repeat(12000)))
+      source.exec(analysisMigration)
+      source.pragma('user_version=2')
+    } finally { source.close() }
+    const fresh = open(path())
+    fresh.connection.pragma('wal_checkpoint(TRUNCATE)')
+    fresh.connection.pragma('user_version=2')
+    const file = path()
+    copyFileSync(legacyFile, file)
+    copyFileSync(fresh.connection.name + '-wal', file + '-wal')
+    const main = readFileSync(file), wal = readFileSync(file + '-wal')
+    expect(() => open(file)).toThrow(ClientError)
+    expect(readFileSync(file)).toEqual(main)
+    expect(readFileSync(file + '-wal')).toEqual(wal)
+    const good = open(legacyFile)
+    expect(good.readSetting('padding')).toBe('x'.repeat(12000))
+    expect(good.connection.pragma('integrity_check', { simple: true })).toBe('ok')
+  })
   it('migrates once, preserves settings and records across reopen', () => {
     const file = path(), db = open(file)
     db.activateProfile('profile1')

@@ -70,6 +70,7 @@ export class WindowManager {
     if (this.canHide()) this.window.hide()
     else this.window.minimize() // Keep a taskbar/dock entry when the tray cannot be trusted.
   }
+  prepareUpdateExit(): void { this.quitting = true; this.saveBounds() }
   applyTheme(settings: DesktopSettings): void { nativeTheme.themeSource = settings.theme }
   private navigate(page: PageName): void {
     if (!this.window.webContents.isLoadingMainFrame()) this.window.webContents.send(channels.navigate, page)

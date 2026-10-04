@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3'
 import { randomUUID } from 'node:crypto'
+import { existsSync } from 'node:fs'
 import type { AddOutcome, HistoryEntry, HistoryPage, HistoryQuery, Vocabulary } from '../../shared/models'
 import { ClientError } from '../maimemo/errors'
 import { initialMigration } from './migrations/001-initial'
@@ -9,9 +10,23 @@ const columns = `o.id, o.profile_id AS profileId, o.voc_id AS vocId, o.spelling,
  o.message, o.created_at AS createdAt, o.updated_at AS updatedAt, o.confirmed_at AS confirmedAt,
  o.error_code AS errorCode, p.active AS activeProfile`
 
+export class DatabaseIntegrityError extends ClientError {
+  constructor() { super('STORAGE_ERROR') }
+}
+
 export class OperationsDatabase {
   readonly connection: Database.Database
   constructor(path: string) {
+    // Check through a read-only connection before any migration or WAL checkpoint
+    // can persist an inconsistent database/log pair over the recoverable main file.
+    if (existsSync(path)) {
+      try {
+        const check = new Database(path, { readonly: true, fileMustExist: true })
+        try {
+          if (check.pragma('quick_check', { simple: true }) !== 'ok') throw new DatabaseIntegrityError()
+        } finally { check.close() }
+      } catch { throw new DatabaseIntegrityError() }
+    }
     this.connection = this.guard(() => new Database(path))
     try {
       this.connection.pragma('foreign_keys = ON')
@@ -20,7 +35,7 @@ export class OperationsDatabase {
       this.connection.pragma('busy_timeout = 3000')
       const version = this.connection.pragma('user_version', { simple: true }) as number
       if (version > 2) throw new ClientError('STORAGE_ERROR')
-      this.connection.transaction(() => {
+      if (version < 2) this.connection.transaction(() => {
         if (version === 0) this.connection.exec(initialMigration)
         if (version < 2) this.connection.exec(analysisMigration)
         this.connection.pragma('user_version = 2')

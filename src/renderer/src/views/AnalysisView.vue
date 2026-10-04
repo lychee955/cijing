@@ -19,7 +19,8 @@ function submit(event: KeyboardEvent): void { if (!event.isComposing && !event.r
   <section class="analysis-page">
     <div class="eyebrow">从主干读懂句子</div><h1>句子分析</h1>
     <div class="analysis-toolbar"><label>当前 AI 配置<select aria-label="当前 AI 配置" :value="analysis.configuration.activeId ?? ''" @change="analysis.select(($event.target as HTMLSelectElement).value)"><option disabled value="">请选择配置</option><option v-for="p in analysis.configuration.profiles" :key="p.id" :value="p.id">{{ p.name }} · {{ p.model }}</option></select></label><button @click="emit('settings')">AI 服务设置</button></div>
-    <p v-if="!analysis.active" class="notice">请先在设置中配置 AI 服务。句子分析无需墨墨 Token。</p>
+    <p v-if="analysis.configurationError" class="notice error" role="alert">AI 配置读取失败：{{ analysis.configurationError }} <button @click="analysis.refresh()">重新读取 AI 配置</button></p>
+    <p v-else-if="analysis.configurationLoaded && !analysis.active" class="notice">请先在设置中配置 AI 服务。句子分析无需墨墨 Token。</p>
     <div class="analysis-mode"><label class="check-label"><input v-model="analysis.detailed" type="checkbox" :disabled="analysis.busy" />详细分析</label><span class="subtle">{{ analysis.detailed ? '翻译并讲解句子结构、语法和词汇' : '仅翻译全文，保留段落' }}</span></div>
     <label class="visually-hidden" for="analysis-input">英文句子或短段落</label><textarea id="analysis-input" v-model="analysis.input" rows="5" placeholder="输入英文句子或短段落…" :disabled="analysis.busy" @keydown="submit" />
     <div class="input-hint"><span>Ctrl / ⌘ + Enter {{ action }}</span><span :class="{ danger: !valid && analysis.input.length > 0 }">{{ words }} / 300 单词 · {{ analysis.input.length }} / 6,000 字符</span></div>
@@ -40,7 +41,8 @@ function submit(event: KeyboardEvent): void { if (!event.isComposing && !event.r
         <details v-if="sentence.notes.length"><summary>歧义、指代与原文错误</summary><ul><li v-for="(note, j) in sentence.notes" :key="j">{{ note }}</li></ul></details>
       </article>
     </section>
-    <details class="analysis-history"><summary>分析历史（{{ analysis.total }}）</summary>
+    <details class="analysis-history"><summary>分析历史（{{ analysis.historyError ? '读取失败' : analysis.historyLoaded ? analysis.total : '正在读取…' }}）</summary>
+      <p v-if="analysis.historyError" class="notice error" role="alert">{{ analysis.historyError }}</p>
       <div class="actions"><button @click="analysis.loadHistory()">刷新分析历史</button><button class="danger" :disabled="!analysis.total" @click="clearConfirm = true">清空分析历史</button></div>
       <p v-if="clearConfirm" class="notice">清空全部分析历史？<button class="danger" @click="analysis.remove(); clearConfirm = false">确认清空</button><button @click="clearConfirm = false">保留</button></p>
       <article v-for="item in analysis.history" :key="item.id" class="history-card"><p class="history-message">{{ item.text }}</p><p class="subtle">{{ item.mode === 'translation' ? '仅翻译' : '详细分析' }} · {{ item.source.name }} · {{ item.model }} · {{ new Date(item.createdAt).toLocaleString() }}</p><div class="actions"><button @click="analysis.open(item.id)">{{ item.mode === 'translation' ? '查看翻译' : '查看分析' }}</button><button class="danger" @click="deleteId = item.id">删除分析</button></div><p v-if="deleteId === item.id" class="notice">删除此分析？<button class="danger" @click="analysis.remove(item.id); deleteId = ''">确认删除分析</button><button @click="deleteId = ''">保留</button></p></article>

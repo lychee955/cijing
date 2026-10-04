@@ -11,6 +11,7 @@ import type { SessionService } from '../services/session-service'
 import type { OperationsDatabase } from '../storage/database'
 import { settingsSchema } from '../storage/settings'
 import { validateSender } from './security'
+import { ExitGate } from '../updates/exit-gate'
 
 export interface DesktopControls {
   status(): DesktopStatus
@@ -26,7 +27,7 @@ export const historyQuerySchema = z.object({
 
 export function registerIpc(window: BrowserWindow, allowedUrl: string, credentials: CredentialStore,
   vocabulary: VocabularyService, study: StudyService, session: SessionService, database: OperationsDatabase,
-  desktop: DesktopControls): void {
+  desktop: DesktopControls, gate = new ExitGate()): void {
   const registered: string[] = []
   const noArgs = z.tuple([])
   const handle = <T extends unknown[]>(channel: string, schema: z.ZodType<T>, action: (...args: T) => unknown) => {
@@ -37,7 +38,7 @@ export function registerIpc(window: BrowserWindow, allowedUrl: string, credentia
         url: event.senderFrame?.url ?? '' }, allowedUrl)
       const parsed = schema.safeParse(args)
       if (!parsed.success) throw new ClientError('INVALID_INPUT')
-      return action(...parsed.data)
+      return gate.run(() => action(...parsed.data))
     }))
   }
   handle(channels.credentialStatus, noArgs, () => session.status())

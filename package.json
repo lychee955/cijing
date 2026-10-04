@@ -1,6 +1,6 @@
 {
   "name": "cijing",
-  "version": "0.2.0",
+  "version": "0.0.1-snapshot.20261004.1",
   "private": true,
   "description": "词境 · 英语查词、句子解析与生词收录",
   "author": "lychee955",
@@ -16,14 +16,18 @@
     "typecheck": "vue-tsc --noEmit",
     "icons": "node scripts/make-icon.cjs",
     "build": "npm run icons && npm run typecheck && electron-vite build",
-    "dist": "npm run build && electron-builder --win",
+    "dist": "npm run build && node scripts/package-release.cjs",
     "test": "node scripts/test.cjs",
     "test:e2e": "npm run build && playwright test",
-    "check": "npm run test && npm run build"
+    "check": "npm run test && npm run build",
+    "release:verify": "node scripts/verify-release.cjs"
   },
   "dependencies": {
     "better-sqlite3": "13.0.3",
+    "electron-updater": "6.8.9",
+    "js-yaml": "4.3.2",
     "pinia": "4.0.3",
+    "semver": "7.8.5",
     "vue": "3.5.42",
     "zod": "4.6.2"
   },
@@ -31,10 +35,12 @@
     "@electron/rebuild": "4.2.0",
     "@playwright/test": "1.63.0",
     "@types/better-sqlite3": "9.6.0",
+    "@types/js-yaml": "4.0.9",
     "@types/node": "24.13.4",
+    "@types/semver": "7.8.0",
     "@vitejs/plugin-vue": "6.0.8",
     "electron": "44.3.0",
-    "electron-builder": "^26.15.3",
+    "electron-builder": "26.15.3",
     "electron-vite": "5.0.0",
     "typescript": "5.9.3",
     "vite": "7.3.6",

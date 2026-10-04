@@ -61,6 +61,7 @@ onUnmounted(() => { clearKey(); window.removeEventListener('blur', clearKey) })
 <template>
   <section class="settings-card ai-settings">
     <div class="ai-settings-heading"><h2>AI 服务</h2><button :disabled="testing || saving" @click="addProfile">新增 AI 配置</button></div><p class="subtle">独立于墨墨账号。可保存多套服务和模型配置；密钥加密保存，不回填明文。</p>
+    <p v-if="analysis.configurationError" class="notice error" role="alert">AI 配置读取失败：{{ analysis.configurationError }} <button @click="analysis.refresh()">重新读取 AI 配置</button></p>
     <article v-for="p in analysis.configuration.profiles" :key="p.id" class="ai-profile">
       <div><strong>{{ p.name }}</strong><span v-if="p.id === analysis.configuration.activeId" class="status-pill">当前</span><p class="subtle">{{ p.model }} · {{ p.protocol === 'openai' ? 'OpenAI 兼容' : 'Gemini 原生' }} · {{ p.authInvalid ? '密钥需更新' : p.hasKey ? '密钥已保存' : '缺少密钥' }}</p></div>
       <div class="actions"><button :disabled="testing || saving" @click="edit(p)">编辑</button><button :disabled="testing || saving || p.id === analysis.configuration.activeId" @click="analysis.select(p.id)">{{ p.id === analysis.configuration.activeId ? '已是当前' : '设为当前' }}</button><button :disabled="testing || saving || !p.hasKey || analysis.busy" @click="test(p.id)">测试连接</button><button class="danger" :disabled="testing || saving" @click="requestDelete(p)">删除配置</button></div>
