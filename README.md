@@ -108,9 +108,7 @@ npm run dev
 
 ## 本地打包
 
-当前发行脚本只构建 **Windows x64 安装版和便携版**，并会运行打包后的 Windows EXE 检查原生模块。请在 Windows x64 电脑或 Windows x64 虚拟机中执行以下流程；目前不提供 macOS、Linux 或 ARM64 的发行打包流程。
-
-完成上面的依赖安装后，在仓库根目录逐条执行；任何一步失败都应先解决，再继续后续步骤：
+在 Windows x64 环境安装依赖后，依次运行：
 
 ```powershell
 npm run check
@@ -118,131 +116,11 @@ npm run test:e2e
 npm run dist
 ```
 
-`dist` 由 `scripts/package-release.cjs` 调用 electron-builder，使用 `--win --x64 --publish never` 生成发行包，随后运行打包 EXE 的版本及 SQLite 内存读写检查，并校验发行文件。
-
-只在本地打包不需要 GitHub 账号、发布令牌或代码签名证书；所需构建工具由项目依赖提供，无需全局安装 Electron 或 electron-builder。首次打包还需要下载 electron-builder 的 Windows 打包工具，请确保可以访问相应下载地址。
-
-每次打包会创建独立目录 `dist/release-<版本号>-<时间戳>/`，实际路径见命令输出。版本号来自 `package.json`。例如版本为 `0.0.2-snapshot.20261004.1` 时：
-
-| 文件 | 用途 |
-| --- | --- |
-| `cijing-0.0.2-snapshot.20261004.1-win-x64-setup.exe` | NSIS 安装版 |
-| `cijing-0.0.2-snapshot.20261004.1-win-x64-portable.exe` | 便携版 |
-| `cijing-0.0.2-snapshot.20261004.1-win-x64-setup.exe.blockmap` | 安装版更新配套文件 |
-| `snapshot.yml` | 快照元数据，描述本次安装包的版本、大小和 SHA-512 |
-| `release-manifest.json` | 本地核对清单，包含四项发布附件的名称、大小和 SHA-256 |
-
-安装版和便携版都将配置及历史保存在 `%APPDATA%/cijing/`，便携版不会将数据保存在 EXE 旁。未配置签名证书的包可能触发 Windows 安全提示；当前应用内自动安装更新保持关闭。打包检查通过后，正式分发前还应在测试账号或虚拟机中验证实际安装与便携版启动，避免影响日常使用的数据。
-
-可随时重新校验某一次产物；将目录替换为本次打包输出的实际路径：
-
-```powershell
-npm run release:verify -- "dist/release-0.0.2-snapshot.20261004.1-实际时间戳"
-```
+产物位于本次新建的 `dist/release-<版本>-<时间戳>/`，包含安装版、便携版、更新配套文件和本地核对清单。打包会检查 EXE 版本、SQLite 原生模块及文件完整性，但仍需在测试账号或虚拟机中验证实际安装与启动。打包不会上传文件，也不需要 GitHub 发布权限。产物清单与复核方法见[发布与更新指南](docs/RELEASING.md#本地构建与产物)。
 
 ## 发布到 GitHub Releases
 
-发布顺序：**更新版本与说明 → 检查并打包 → 提交及推送标签 → 上传草稿附件 → 核对后公开**。本地打包不会自动上传。
-
-<details>
-<summary>展开完整发布步骤与命令（PowerShell）</summary>
-
-本节适用于有目标仓库写入和发布权限的维护者。其他开发者可直接执行上面的本地打包流程；若要发行自己的 Fork，请先将 `origin` 指向自己的仓库，并在构建前同步修改 `electron-builder.yml` 的 `publish.owner` / `publish.repo` 以及 `src/main/updates/release-source.ts` 的 `REPOSITORY`，让打包配置和客户端更新源指向同一仓库。
-
-以下命令使用 [GitHub CLI](https://cli.github.com/)。先安装并登录拥有仓库发布权限的账号；`setup-git` 用于配置 HTTPS 推送的登录凭证。选择网页发布时，可跳过 CLI 登录，使用自己的 Git 认证方式推送：
-
-```powershell
-gh auth login
-gh auth status
-gh auth setup-git
-```
-
-### 1. 确定版本并编写发布说明
-
-以下以发布快照 `0.0.2-snapshot.20261004.1` 为例，在同一个 PowerShell 会话中操作；后续发布应替换成尚未发布的版本号：
-
-```powershell
-$version = '0.0.2-snapshot.20261004.1'
-$tag = "v$version"
-$repo = 'lychee955/cijing' # Fork 发布时改为自己的 owner/repo
-$notes = "docs/RELEASE_NOTES_$version.md"
-
-npm version $version --no-git-tag-version
-```
-
-这条命令同步更新 `package.json` 和 `package-lock.json`，不会创建 Git 提交或标签。参照 [发布说明模板](docs/RELEASE_NOTES_TEMPLATE.md) 新建 `$notes` 指向的 Markdown 文件，写明本次变化、下载方式和已知限制。同步维护 [发布流程](docs/RELEASING.md) 中的当前版本。快照编号格式为 `X.Y.Z-snapshot.YYYYMMDD.N`，每轮公开构建增加编号；正式版使用 `X.Y.Z`。
-
-### 2. 构建并确认本次产物
-
-在版本、代码和发布说明确定后执行：
-
-```powershell
-npm run check
-npm run test:e2e
-npm run dist
-
-# 替换为刚才命令输出的真实目录；不要混用其他构建目录。
-$releaseDir = 'dist/release-0.0.2-snapshot.20261004.1-实际时间戳'
-npm run release:verify -- $releaseDir
-
-$manifest = Get-Content -LiteralPath (Join-Path $releaseDir 'release-manifest.json') -Raw | ConvertFrom-Json
-if ($manifest.version -ne $version) { throw '产物版本与待发布版本不一致' }
-$metadataFile = $manifest.metadataFile
-$assets = @($manifest.artifacts | ForEach-Object { Join-Path $releaseDir $_.name })
-$manifest.artifacts | Format-Table name, size, sha256 -AutoSize
-```
-
-确认实际安装、启动及核心功能可用后继续。只上传清单中的四项附件；`release-manifest.json` 留作本地复核，`win-unpacked/` 和其他中间文件不上传。修改了代码或版本号后，需要重新构建并更新 `$releaseDir`。
-
-### 3. 提交并推送代码与标签
-
-先检查 `git status` 和差异，再暂存本次要发布的文件。以下示例适用于当前工作区所有改动都属于本次发布的情况；如有无关改动，应改为明确指定文件：
-
-```powershell
-git status --short
-git diff
-git add -A
-git diff --cached --check
-git diff --cached --stat
-git commit -m "chore: release $tag"
-git tag $tag
-git push --atomic origin HEAD "refs/tags/$tag"
-```
-
-在正常本地分支上执行上述命令，并确保 `origin` 对应 `$repo`。若仓库要求通过 PR 合并，先完成合并，再检出最终发布提交、打标签并推送标签；发布附件必须由该提交的代码构建。不要移动已发布标签或覆盖已公开的安装包，后续修改应提升版本号。
-
-### 4. 创建草稿、上传附件并公开
-
-创建草稿时一次上传清单中的四个文件，并从 Markdown 文件读取完整发布说明：
-
-```powershell
-gh release create $tag @assets --repo $repo --draft --prerelease --latest=false --verify-tag --title "词境 $tag" --notes-file $notes
-gh release view $tag --repo $repo --json tagName,isDraft,assets,url
-gh release view $tag --repo $repo --web
-```
-
-`--verify-tag` 要求标签已存在于远端。打开草稿，核对发布说明、版本和四个附件；可用下面的命令查看远端附件大小和 SHA-256，与本地 `release-manifest.json` 比较：
-
-```powershell
-gh api "repos/$repo/releases/tags/$tag" --jq '.assets[] | {name, size, digest}'
-```
-
-如果上传中断，先检查草稿现有附件，再用 `gh release upload $tag "缺失文件的完整路径" --repo $repo` 补传缺失文件。确认完整后，公开快照预发布版：
-
-```powershell
-gh release edit $tag --repo $repo --draft=false --prerelease --latest=false
-gh release view $tag --repo $repo --json tagName,isDraft,url
-```
-
-也可以使用 GitHub 网页：进入目标仓库的 **Releases → Draft a new release**，选择已推送的标签，填写标题和发布说明，上传清单中的四项附件，勾选 **Set as a pre-release**，不设为 Latest，核对后点击 **Publish release**。网页方式无需安装 GitHub CLI。
-
-发布后检查 `https://github.com/<owner>/<repo>/releases/tag/<tag>` 和 `https://github.com/<owner>/<repo>/releases/download/<tag>/<metadataFile>` 可公开访问（元数据文件名以清单为准，快照为 `snapshot.yml`），元数据版本与安装包一致。匿名 GitHub API 可能限流，403/429 不代表附件上传失败。
-
-正式版须满足正式发布验收条件；使用不带快照后缀的版本号，草稿不加 `--prerelease`，公开时使用 `--prerelease=false --latest`，元数据为 `latest.yml`。
-
-CLI 参数说明见 [创建 Release](https://cli.github.com/manual/gh_release_create)、[上传附件](https://cli.github.com/manual/gh_release_upload) 和 [发布草稿](https://cli.github.com/manual/gh_release_edit)。签名配置、自动安装启用条件与完整升级验收要求见 [发布与更新说明](docs/RELEASING.md)。
-
-</details>
+发布顺序：更新版本与说明 → 检查并打包 → 提交及推送标签 → 上传草稿附件 → 核对后公开。快照须标记为 Pre-release；正式版需先完成签名与实机升级验收。完整步骤、命令和附件核对方法见[发布与更新指南](docs/RELEASING.md#发布操作)。
 
 ## 项目结构
 

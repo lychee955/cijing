@@ -9,4 +9,3 @@ coverage/
 .env*
 !.env.example
 .idea/
-/docs/LOCAL_DATA_RECOVERY.md

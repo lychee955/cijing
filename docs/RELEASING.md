@@ -74,12 +74,82 @@ npm run release:verify -- "dist/release-0.0.2-snapshot.20261004.1-具体时间�
 
 完成签名与实机验收后再发布正式 Release。先更新 `package.json` 和锁文件版本，运行检查并生成本轮产物。将代码提交与 `vX.Y.Z` 标签绑定，在相同标签的 Release **草稿**中上传清单四个文件，核对资产名、版本、大小与校验值，写入对应发布说明，最后一次性公开。
 
-项目打包脚本不会自动上传；可使用 GitHub CLI 或 GitHub 网页处理草稿和发布，完整命令见 [README 的发布流程](../README.md#发布到-github-releases)。不得把发布 Token 写入客户端。不得在已发布版本下替换二进制文件而不提升版本。
+项目打包脚本不会自动上传；可使用 GitHub CLI 或 GitHub 网页处理草稿和发布，操作命令见下节。不得把发布 Token 写入客户端。不得在已发布版本下替换二进制文件而不提升版本。
 
 正式发布后匿名检查 API 和 `latest.yml`。若出现 403/429，等限流窗口恢复后再检查；客户端会保留失败状态与重试时间。404 视为无法确认发布信息，不会误报最新版。没有当前设备的包显示无适用更新；存在目标包但缺少配套文件显示发布不完整。
 
 客户端先解析固定仓库的同一正式 Release，然后把安装更新源固定到该标签的 GitHub 附件目录，使用 generic provider 执行该版本下载。下载前再次核对正式候选、元数据和组件实际解析出的文件；后台检查不会自动下载。
 
 日志位于 `%APPDATA%/cijing/logs/updates.log`，记录启动版本、安装形式、状态、失败阶段和安装器启动结果，不记录业务密钥。安装器启动日志并不证明升级成功，须核对下一次启动版本与数据。
+
+## 发布操作
+
+以下以快照 `0.0.2-snapshot.20261004.1` 为例。后续发布要换成尚未发布的版本号；正式版还须满足上文的签名与实机验收条件。需要目标仓库的写入及发布权限。若发布自己的 Fork，先将 `origin` 指向该仓库，并在构建前同步修改 `electron-builder.yml` 的 `publish.owner` / `publish.repo` 和 `src/main/updates/release-source.ts` 的 `REPOSITORY`。
+
+1. **确定版本和说明。** 在同一个 PowerShell 会话中设置变量，并参照[发布说明模板](RELEASE_NOTES_TEMPLATE.md)编写本次说明：
+
+   ```powershell
+   $version = '0.0.2-snapshot.20261004.1'
+   $tag = "v$version"
+   $repo = 'lychee955/cijing' # Fork 发布时改为自己的 owner/repo
+   $notes = "docs/RELEASE_NOTES_$version.md"
+   if ((Get-Content package.json -Raw | ConvertFrom-Json).version -ne $version) {
+     npm version $version --no-git-tag-version
+   }
+   ```
+
+   如需提升版本，`npm version` 会同步更新 `package.json` 与 `package-lock.json`，不创建提交或标签。同步更新本文开头的当前版本。快照编号格式为 `X.Y.Z-snapshot.YYYYMMDD.N`；正式版使用 `X.Y.Z`。
+
+2. **构建并核对产物。** 任何检查失败都应先解决再继续。将目录替换为本次命令输出的真实路径，修改代码或版本后需重新构建。
+
+   ```powershell
+   npm run check
+   npm run test:e2e
+   npm run dist
+   $releaseDir = 'dist/release-0.0.2-snapshot.20261004.1-实际时间戳'
+   npm run release:verify -- $releaseDir
+   $manifest = Get-Content -LiteralPath (Join-Path $releaseDir 'release-manifest.json') -Raw | ConvertFrom-Json
+   if ($manifest.version -ne $version) { throw '产物版本与待发布版本不一致' }
+   $metadataFile = $manifest.metadataFile
+   $assets = @($manifest.artifacts | ForEach-Object { Join-Path $releaseDir $_.name })
+   $manifest.artifacts | Format-Table name, size, sha256 -AutoSize
+   ```
+
+   在测试账号或虚拟机中确认安装、启动与核心功能。只上传清单中的四项附件；`release-manifest.json` 留在本地，不上传 `win-unpacked/` 或其他中间文件。
+
+3. **提交并推送代码与标签。** 检查工作区，仅暂存本次发布的文件。以下命令暂存版本文件和发布说明；其他本次变更也要用 `git add -- 文件路径` 明确暂存。若仓库要求通过 PR 合并，先合并，再从最终发布提交构建并打标签。
+
+   ```powershell
+   git status --short
+   git diff
+   git add -- package.json package-lock.json $notes
+   git diff --cached --check
+   git diff --cached --stat
+   git commit -m "chore: release $tag"
+   git tag $tag
+   git push --atomic origin HEAD "refs/tags/$tag"
+   ```
+
+   确认 `origin` 对应 `$repo`，附件由标签所指代码构建。已发布标签和安装包不应覆盖；后续修改应提升版本号。
+
+4. **创建草稿、核对附件并公开。** 以下命令使用 [GitHub CLI](https://cli.github.com/)；首次使用前运行 `gh auth login`、`gh auth status`，HTTPS 推送需要时运行 `gh auth setup-git`。
+
+   ```powershell
+   gh release create $tag @assets --repo $repo --draft --prerelease --latest=false --verify-tag --title "词境 $tag" --notes-file $notes
+   gh release view $tag --repo $repo --json tagName,isDraft,assets,url
+   gh release view $tag --repo $repo --web
+   gh api "repos/$repo/releases/tags/$tag" --jq '.assets[] | {name, size, digest}'
+   ```
+
+   对照本地清单核对版本、附件名称、大小和 SHA-256。上传中断时，先检查草稿现有附件，再用 `gh release upload $tag "缺失文件的完整路径" --repo $repo` 补传。确认完整后公开快照：
+
+   ```powershell
+   gh release edit $tag --repo $repo --draft=false --prerelease --latest=false
+   gh release view $tag --repo $repo --json tagName,isDraft,url
+   ```
+
+   也可在 GitHub 网页的 **Releases → Draft a new release** 中选择已推送标签、填写说明、上传四项附件，勾选 **Set as a pre-release** 且不设为 Latest，核对后公开。网页方式无需安装 GitHub CLI。
+
+公开后检查 Release 页面及 `https://github.com/<owner>/<repo>/releases/download/<tag>/<metadataFile>` 可匿名访问，元数据版本与安装包一致。匿名 API 的 403/429 可能是限流，须稍后复查。正式版草稿不加 `--prerelease`；公开时使用 `--prerelease=false --latest`，元数据为 `latest.yml`。CLI 参数见[创建 Release](https://cli.github.com/manual/gh_release_create)、[上传附件](https://cli.github.com/manual/gh_release_upload)和[发布草稿](https://cli.github.com/manual/gh_release_edit)。
 
 参考：[electron-builder 自动更新文档](https://www.electron.build/v26/docs/features/auto-update/)、[发布配置](https://www.electron.build/v26/docs/publish/)。
