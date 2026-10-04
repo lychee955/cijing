@@ -1,0 +1,18 @@
+{
+  "printWidth": 120,
+  "tabWidth": 4,
+  "singleQuote": false,
+  "semi": true,
+  "trailingComma": "none",
+  "bracketSpacing": false,
+  "singleAttributePerLine": false,
+  "endOfLine": "lf",
+  "overrides": [
+    {
+      "files": ["*.json", "*.css", "*.scss", "*.html"],
+      "options": {
+        "tabWidth": 2
+      }
+    }
+  ]
+}

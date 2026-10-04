@@ -1,2 +1,6 @@
-import type { DesktopApi } from '../../shared/contracts'
-declare global { interface Window { desktop: DesktopApi } }
+import type {DesktopApi} from "../../shared/contracts";
+declare global {
+    interface Window {
+        desktop: DesktopApi;
+    }
+}

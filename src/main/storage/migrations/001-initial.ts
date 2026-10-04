@@ -24,4 +24,4 @@ CREATE INDEX history_by_profile_time ON word_operations(profile_id, created_at D
 CREATE INDEX operation_by_word ON word_operations(profile_id, voc_id, created_at DESC);
 CREATE INDEX pending_operations ON word_operations(profile_id, state);
 CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-`
+`;

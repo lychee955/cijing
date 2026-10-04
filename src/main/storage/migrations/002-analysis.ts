@@ -9,4 +9,4 @@ CREATE TABLE sentence_analyses (
 );
 CREATE INDEX analysis_reuse ON sentence_analyses(reuse_key, created_at DESC);
 CREATE INDEX analysis_time ON sentence_analyses(created_at DESC);
-`
+`;

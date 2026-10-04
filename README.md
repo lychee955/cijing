@@ -88,12 +88,16 @@ npm run dev
 | `npm test` | 单元测试，使用与 Electron 一致的 SQLite ABI |
 | `npm run build` | 生成图标、检查类型并构建生产代码 |
 | `npm start` | 运行已经构建的应用 |
-| `npm run check` | 单元测试和生产构建 |
+| `npm run format` | 统一代码格式、拆分长行 |
+| `npm run format:check` | 检查代码格式 |
+| `npm run check` | 格式检查、单元测试和生产构建 |
 | `npm run test:e2e` | 构建并运行桌面回归 |
 | `npm run dist` | 构建、打包并校验 Windows x64 发行文件 |
 | `npm run release:verify -- <目录>` | 重新校验指定目录的发行文件 |
 
 普通测试使用模拟接口和临时数据，不使用真实 Token 或修改真实账号。桌面回归需要可交互的桌面及可用的系统加密服务；真实在线音频测试默认跳过。
+
+TS/JS 的 Prettier 规则参照 IDEA 2024.1 原生默认：4 空格缩进、双引号、分号、120 列目标宽度，对象和导入的大括号内不加空格；JSON、CSS 和 HTML 使用 2 空格。换行统一为 LF。Prettier 与 IDEA 的排版算法不同，具体折行、类型大括号空格及保留已有尾逗号的行为仍有差异；本项目不额外添加尾逗号。`npm ci` 会通过 Husky 安装提交 hook，提交前自动格式化暂存的代码文件；若安装时禁用了脚本，可运行 `npm run prepare` 安装 hook。
 
 <details>
 <summary>依赖安装与调试排障</summary>

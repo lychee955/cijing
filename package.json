@@ -9,6 +9,7 @@
     "node": ">=22.12.0"
   },
   "scripts": {
+    "prepare": "husky",
     "postinstall": "node node_modules/electron/install.js && electron-rebuild -f -w better-sqlite3",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "dev": "electron-vite dev --watch",
@@ -19,8 +20,13 @@
     "dist": "npm run build && node scripts/package-release.cjs",
     "test": "node scripts/test.cjs",
     "test:e2e": "npm run build && playwright test",
-    "check": "npm run test && npm run build",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,cjs,mjs,vue,json,css,scss,html}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,cjs,mjs,vue,json,css,scss,html}\"",
+    "check": "npm run format:check && npm run test && npm run build",
     "release:verify": "node scripts/verify-release.cjs"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,cjs,mjs,vue,json,css,scss,html}": "prettier --write"
   },
   "dependencies": {
     "better-sqlite3": "13.0.3",
@@ -42,6 +48,9 @@
     "electron": "44.3.0",
     "electron-builder": "26.15.3",
     "electron-vite": "5.0.0",
+    "husky": "9.1.7",
+    "lint-staged": "16.4.0",
+    "prettier": "3.8.5",
     "typescript": "5.9.3",
     "vite": "7.3.6",
     "vitest": "5.0.0",
