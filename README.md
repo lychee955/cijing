@@ -1,148 +1,284 @@
-# 词境 · cijing
+<p align="center">
+  <img src="build/logo.svg" width="88" height="88" alt="词境 Logo">
+</p>
 
-![词境 Logo](build/logo.svg)
+# 词境 · Cijing
 
-英语查词、句子解析与生词收录工具，支持连接墨墨学习规划。项目仓库：[lychee955/cijing](https://github.com/lychee955/cijing)。词境为独立第三方工具，不属于墨墨官方产品。
+**查词、理解句子，把遇到的生词加入学习规划。**
 
-Electron + Vue 3 + TypeScript 桌面客户端。支持查词、添加与确认、SQLite 历史和重启恢复、托盘、可配置全局快捷键、单实例及窗口设置，并新增**句子分析与可切换 AI 服务**。M1 已使用用户真实账号新增 `apple`，并确认手机端可见；自动验证使用隔离模拟接口，不额外修改真实学习规划。
+词境是一款桌面英语学习工具，整合词典查询、AI 句子分析与墨墨生词收录。基于 Electron、Vue 3 和 TypeScript 构建，当前处于快照开发阶段，版本为 `0.0.1-snapshot.20261004.1`，支持构建 Windows x64 安装版和便携版。
 
-## 启动
+[查看测试版本](https://github.com/lychee955/cijing/releases) · [快速上手](#快速上手) · [本地开发](#本地开发) · [本地打包](#本地打包) · [发布版本](#发布到-github-releases) · [问题反馈](https://github.com/lychee955/cijing/issues)
 
-需要 Node.js 22.12+，推荐 Node.js 24 LTS。本机已在 `.tools/` 准备便携 Node.js，可在项目目录的 PowerShell 中运行：
+> 词境为独立第三方工具，不属于墨墨官方产品。
+
+## 功能
+
+- **查词与发音**：查看中文释义、英美音标，按需播放发音。
+- **生词收录**：连接个人墨墨账号，添加词条、查看学习状态并确认待处理结果。
+- **句子分析与翻译**：分析句子主干、从句、语法和重点词汇，也可切换为仅翻译模式。
+- **自选 AI 服务**：支持 OpenAI 兼容接口和 Gemini 原生接口，可保存、测试及切换多套配置。
+- **本地历史与桌面操作**：回看查词收录和分析记录，支持托盘、全局快捷键及浅色／深色主题。
+
+## 下载与安装
+
+当前暂无已发布版本。后续快照发布后，前往 [GitHub Releases](https://github.com/lychee955/cijing/releases)，从 Assets 选择一个 `.exe` 文件：
+
+| 发行文件 | 使用方式 |
+| --- | --- |
+| `cijing-<版本>-win-x64-setup.exe` | 安装版，按向导安装 |
+| `cijing-<版本>-win-x64-portable.exe` | 便携版，下载后直接运行 |
+
+`snapshot.yml`（快照）或 `latest.yml`（正式版）和 `.blockmap` 是更新配套文件，无需手动打开。当前尚未提供 macOS、Linux 和 Windows ARM64 发行包；Windows 包尚未签名，可能显示安全提示。
+
+Logo 下方的版本入口仅检查正式版，不发现快照。快照需要从 Releases 列表手动下载；没有正式版时，检查更新会提示无法确认发布信息。快照与已有安装共用数据目录，测试前请备份或使用独立账号。
+
+## 快速上手
+
+查词收录和 AI 分析分别配置，**仅使用 AI 功能时无需墨墨 Token**。
+
+1. **配置墨墨**：在墨墨 App → 我的 → 更多设置 → 实验功能 → 开放 API 获取个人 Token，保存到词境「设置」，并在手机端开启自动同步。
+2. **配置 AI**：在「设置 → AI 服务」新增配置，填写服务地址、API Key 和模型，测试连接后设为当前配置。费用和额度由所选服务商决定。
+3. **开始使用**：在「查词」查询并收录生词；在「句子分析」输入单句或短段落。关闭「详细分析」可直接获取译文。
+
+| 操作 | Windows 快捷键 |
+| --- | --- |
+| 唤出窗口并聚焦查词 | `Ctrl + Shift + M`，可在设置中修改 |
+| 切换查词／历史／设置／句子分析 | `Ctrl + 1 / 2 / 3 / 4` |
+| 添加所选词条、提交分析或翻译 | `Ctrl + Enter`，依当前页面执行 |
+| 隐藏窗口 | `Esc`，弹窗打开时优先关闭弹窗 |
+
+详细操作、服务配置与常见问题见 [使用指南](docs/USAGE.md)。
+
+## 数据与隐私
+
+- 配置和历史保存在 `%APPDATA%/cijing/`；**便携版也使用这个目录**。Token 和 API Key 使用系统加密能力保存在本机，历史原文和分析结果以普通数据保存。
+- 查词与收录使用墨墨服务，释义和发音使用 UAPI；AI 输入会发送至你配置的服务商。
+- AI 诊断日志默认包含请求与响应正文。分享日志前检查个人信息；启动前设置 `CIJING_AI_LOG_CONTENT=0` 可关闭正文记录。
+- 备份前退出应用并保存完整数据目录，包括 SQLite 主文件及可能存在的 `-wal`、`-shm` 文件。恢复细节见 [数据与恢复](docs/USAGE.md#数据与恢复)。
+
+## 本地开发
+
+### 环境准备
+
+| 工具 | 要求 |
+| --- | --- |
+| 操作系统 | 当前验证和发行平台为 Windows x64 |
+| [Node.js](https://nodejs.org/en/download) | 最低 22.12，建议使用 24.x x64，包含 npm |
+| [Git](https://git-scm.com/downloads) | 用于获取源码和管理版本 |
+| 原生编译工具 | 仅在缺少预构建模块时需要：Python 3、Visual Studio Build Tools 的「使用 C++ 的桌面开发」及 Windows SDK |
+
+### 获取源码并启动
 
 ```powershell
-.\start.ps1
-```
-
-开发启动已启用热更新与自动重载：保存 Vue 页面或 CSS 后界面自动更新；保存主进程代码（如 AI 提示词和接口处理）后自动重建并重启应用；保存 preload 后自动重载页面。保持启动终端运行即可，无需每次重新执行脚本。修改依赖或启动配置时再手动停止并启动。
-
-在「设置 → 桌面行为」点击「开发者工具」，会打开独立的页面 DevTools 窗口。没有绑定调试快捷键。Elements 检查页面与样式，Console 查看页面日志。AI 请求由主进程发送，应在启动终端或 `logs/ai.log` 查看其请求/响应，页面 Network 不会显示这些请求。
-
-已有 Node.js 的环境：
-
-```sh
+git clone https://github.com/lychee955/cijing.git
+cd cijing
 npm ci
 npm run dev
 ```
 
-`npm ci` 的项目 postinstall 会下载锁定版本的 Electron，并为其重建 `better-sqlite3`。网络需允许访问 npm registry 和 Electron/SQLite 官方发布下载地址；如果安装时禁用了脚本，补运行 `node node_modules/electron/install.js` 和 `npm run rebuild`。原生模块缺少对应平台预构建文件时，需要该平台的 C++ 构建工具。
+`npm ci` 会按锁文件安装依赖、下载 Electron 并重建 `better-sqlite3`。开发模式支持渲染界面热更新，主进程改动后自动重启；更新依赖或启动配置后需重新运行开发服务。
 
-更新 Electron 或安装依赖后如遇 `NODE_MODULE_VERSION` 不匹配，运行 `npm run rebuild`。
+### 常用命令
 
-构建后运行：
+| 命令 | 用途 |
+| --- | --- |
+| `npm run dev` | 启动开发环境 |
+| `npm run typecheck` | TypeScript 类型检查 |
+| `npm test` | 单元测试，使用与 Electron 一致的 SQLite ABI |
+| `npm run build` | 生成图标、检查类型并构建生产代码 |
+| `npm start` | 运行已经构建的应用 |
+| `npm run check` | 单元测试和生产构建 |
+| `npm run test:e2e` | 构建并运行桌面回归 |
+| `npm run dist` | 构建、打包并校验 Windows x64 发行文件 |
+| `npm run release:verify -- <目录>` | 重新校验指定目录的发行文件 |
 
-```sh
-npm run build
-npm start
+普通测试使用模拟接口和临时数据，不使用真实 Token 或修改真实账号。桌面回归需要可交互的桌面及可用的系统加密服务；真实在线音频测试默认跳过。
+
+<details>
+<summary>依赖安装与调试排障</summary>
+
+- 确保网络可访问 npm registry、Electron 及原生模块的下载地址；原生编译环境配置见 [node-gyp Windows 说明](https://github.com/nodejs/node-gyp#on-windows)。
+- 如果安装时禁用了脚本，运行 `node node_modules/electron/install.js`，然后运行 `npm run rebuild`。
+- 遇到 `NODE_MODULE_VERSION` 不匹配时，运行 `npm run rebuild`。
+- PowerShell 若阻止执行 `npm.ps1`，将命令中的 `npm` 替换为 `npm.cmd`。
+- 在「设置 → 桌面行为」打开开发者工具。AI 请求由主进程发出，应查看启动终端或 `%APPDATA%/cijing/logs/ai.log`，而非页面 Network。
+
+</details>
+
+## 本地打包
+
+当前发行脚本只构建 **Windows x64 安装版和便携版**，并会运行打包后的 Windows EXE 检查原生模块。请在 Windows x64 电脑或 Windows x64 虚拟机中执行以下流程；目前不提供 macOS、Linux 或 ARM64 的发行打包流程。
+
+完成上面的依赖安装后，在仓库根目录逐条执行；任何一步失败都应先解决，再继续后续步骤：
+
+```powershell
+npm run check
+npm run test:e2e
+npm run dist
 ```
 
-## 使用
+`dist` 由 `scripts/package-release.cjs` 调用 electron-builder，使用 `--win --x64 --publish never` 生成发行包，随后运行打包 EXE 的版本及 SQLite 内存读写检查，并校验发行文件。
 
-1. 在「设置」粘贴个人 Token 并保存，应用会自动发起只读请求验证有效性；已保存的 Token 可点击「验证 Token」再次检测。网络或限流导致无法验证时可稍后重试，明确无效时需更换 Token。Token 获取位置：墨墨 App → 我的 → 更多设置 → 实验功能 → 开放 API。
-2. 在手机 App 开启自动同步。
-3. 返回「查词」，输入拼写，按 Enter 查询。只去除首尾空白，保留大小写和词形。
-4. 多结果时选择词条；点击「加入学习规划」或按 Ctrl/Cmd + Enter。
-5. 如显示「结果待确认」或「未新增」，用「再次确认状态」查询记录。
-6. 「历史」可按当前配置/全部记录查看，支持分页与待处理筛选。旧配置只读，不能向当前账号确认旧配置操作。
+只在本地打包不需要 GitHub 账号、发布令牌或代码签名证书；所需构建工具由项目依赖提供，无需全局安装 Electron 或 electron-builder。首次打包还需要下载 electron-builder 的 Windows 打包工具，请确保可以访问相应下载地址。
 
-桌面快捷键：
+每次打包会创建独立目录 `dist/release-<版本号>-<时间戳>/`，实际路径见命令输出。版本号来自 `package.json`。例如版本为 `0.0.1-snapshot.20261004.1` 时：
 
-| 操作               | 按键或入口                                     |
-| ------------------ | ---------------------------------------------- |
-| 全局唤出并聚焦查词 | `Ctrl/Cmd + Shift + M`，可在设置中修改或停用 |
-| 查词 / 历史 / 设置 / 句子分析 | `Ctrl/Cmd + 1 / 2 / 3 / 4`             |
-| 隐藏窗口           | `Esc`；托盘不可用时改为最小化                |
-| 退出应用           | 托盘「退出词境」或设置「退出应用」             |
+| 文件 | 用途 |
+| --- | --- |
+| `cijing-0.0.1-snapshot.20261004.1-win-x64-setup.exe` | NSIS 安装版 |
+| `cijing-0.0.1-snapshot.20261004.1-win-x64-portable.exe` | 便携版 |
+| `cijing-0.0.1-snapshot.20261004.1-win-x64-setup.exe.blockmap` | 安装版更新配套文件 |
+| `snapshot.yml` | 快照元数据，描述本次安装包的版本、大小和 SHA-512 |
+| `release-manifest.json` | 本地核对清单，包含四项发布附件的名称、大小和 SHA-256 |
 
-默认关闭窗口会隐藏到托盘，可在设置中改为退出。快捷键注册失败会保留原快捷键；状态显示在设置页。Linux 为避免不可见的托盘宿主，隐藏操作默认改为最小化。窗口位置自动保存；显示器断开或布局改变后会校正到可见区域。外观支持跟随系统、浅色、深色。
+安装版和便携版都将配置及历史保存在 `%APPDATA%/cijing/`，便携版不会将数据保存在 EXE 旁。未配置签名证书的包可能触发 Windows 安全提示；当前应用内自动安装更新保持关闭。打包检查通过后，正式分发前还应在测试账号或虚拟机中验证实际安装与便携版启动，避免影响日常使用的数据。
 
-「已加入学习规划」只对应本次 `added_count=1`。「已在学习规划中」只说明查到记录，不说明由本次新增。学习记录暂时为空不能证明写入失败。
+可随时重新校验某一次产物；将目录替换为本次打包输出的实际路径：
 
-每次查词成功后会异步查询各匹配词条的学习记录，并在词条下显示状态。查询期间暂时禁用该词条的添加按钮，已确认在规划中的词条也不可重复添加；未查到记录时保留同步延迟提示。可点击「查询学习记录」手动刷新。
-
-点击英式或美式音标（或右侧小喇叭）播放对应发音，也可聚焦按钮后按 Enter / 空格。发音使用 [UAPI 音频接口](https://uapis.cn/docs/api-reference/get-dictionary-audio)，仅点击时请求，不随查词预加载；切换发音会停止前一段，重新查词或离开查词页会停止播放。加载失败或超时会显示可重试提示。
-
-匹配到墨墨词条后，按拼写调用 [UAPI 词典](https://uapis.cn/docs/api-reference/get-dictionary-lookup)，展示中文释义和可用的英美音标。使用免密钥免费额度，只向 UAPI 发送拼写，不发送墨墨 Token。结果在内存中缓存 10 分钟（最多 200 条），重启后清空；请求串行且间隔至少 300 毫秒，10 秒超时。无释义、网络失败或免费额度受限会在词条下提示，不影响加入墨墨学习规划。超过 64 字符的词条仍可匹配和添加，但无法查询 UAPI 释义。
-
-Token 经 Electron `safeStorage` 加密写入应用数据目录下的 `credentials.v1.json`。界面默认遮罩显示，点击小眼睛后按需读取已保存 Token 的明文；再次点击、离开设置页或窗口失焦时隐藏并清除该明文界面状态。输入新 Token 时也可切换显隐。复制按钮由主进程写入系统剪贴板。点击「更换 Token」后输入并保存才会轮换本地配置 ID，旧记录保留、旧任务暂停；存在请求或恢复确认时禁止替换或清除。明确鉴权失败会持久化暂停该配置，更新 Token 后恢复使用。Linux `basic_text` 后端不可用作凭证保护。
-
-## 句子分析与 AI 服务
-
-在「设置 → AI 服务」选择 OpenRouter、Gemini、Groq、GLM 或自定义模板，填写 HTTPS 基础地址、API Key 和真实模型 ID，保存后设为当前配置。模板只提供默认地址和模型，不绑定业务逻辑；支持通用 OpenAI 兼容 Chat Completions 和 Gemini 原生 generateContent。保存不会调用模型；「测试连接」用公开句子检验当前模型，明确格式不支持时至多额外调用一次。
-
-点击「新增 AI 配置」在弹窗中选择模板并填写配置；已有配置点击「编辑」也在弹窗中修改。保存成功后关闭弹窗，校验失败会在弹窗内提示；取消或按 Esc 放弃本次编辑并清除输入的密钥。
-
-在「句子分析」输入英文单句或短段落（最多 300 个英文单词、6,000 字符），按 Ctrl/Cmd + Enter 分析。先看翻译和主干，再展开成分、从句、语法、重点词汇及歧义/原文错误。嵌套从句逐层展开；引用由本地匹配计算位置，无法定位时保留文字讲解并提示降级。处理中可取消，默认总超时 90 秒。失败保留输入，不自动换模型或无限重试。
-
-默认勾选「详细分析」，结果顶部显示全文翻译，下面可逐句查看译文和语法结构。取消勾选后，按钮变为「翻译全文」，沿用当前 AI 配置，使用独立的简短翻译提示词，只生成纯文本译文并保留段落；不附带分析 Schema、JSON 输出约束或补充偏好，不生成语法与词汇内容。选择会记住，Ctrl/Cmd + Enter、取消、重试与重新生成均适用于两种模式。
-
-多套 AI 配置和密钥独立保存；服务主机变化时清除旧密钥，需重新填写。高级选项可选择详细分析的 JSON 文本（默认）、JSON 对象或 JSON Schema，以及两种模式的总超时。补充提示词为详细分析的全局学习偏好，可恢复默认，不改变程序要求的结果字段。AI 不依赖墨墨 Token；两个服务的鉴权故障各自显示。
-
-应用不设置模型输出长度上限，两个协议均不发送 `max_tokens` / `maxOutputTokens`，设置页已删除该选项。已有配置的旧上限自动忽略，无需重新保存；再次保存时会移除旧字段。服务仍可能有自己的默认输出或上下文限制；推理可能计入生成用量。HTTP 200 但结束原因为 `length` / `MAX_TOKENS` 时，不视为完整分析，界面显示服务结束原因、输出/推理用量和正文字符数，并明确应用未发送上限。
-
-分析历史位于分析页内，支持查看、分页、删除、清空和重新分析；重新分析保留旧记录。同样的原文、配置修订、模型、提示词、生成选项和结构版本可复用完整结果，降级结果不自动复用。翻译与详细分析的缓存分开，历史标明模式；打开记录时恢复对应模式，旧历史默认为详细分析。历史显示原来源和生成时间；用量缺失显示未知。重点词汇的「查词」或「查原形」会带入现有查词页，添加仍须使用墨墨实际返回的词条并由用户确认。离开分析页再返回，输入与已完成结果保留。
-
-AI 密钥经 safeStorage 加密，保存在 SQLite 的独立字段，界面不读取已保存明文。原文、有效提示词快照和讲解作为本地普通数据保存，可以从分析页删除。升级自动迁移数据库到版本 2，保留原墨墨配置和操作历史。
-
-AI 请求和响应会打印到启动终端（`[ai-http]`），同时写入应用数据目录的 `logs/ai.log`。Windows 默认在 `%APPDATA%\cijing\logs\ai.log`。每条日志包含时间、请求 ID、模型、地址、请求体、响应状态/响应体、耗时及 `Retry-After`；本地冷却拦截记为 `cooldown`，`requestSent: false` 表示未再发请求。密钥、鉴权头和 Cookie 会遮盖；原文、提示词和模型回答会进入日志。单个请求/响应体超过 64,000 字符会截断，文件达到约 4 MB 时保留一份 `ai.log.1`。启动前设置 `CIJING_AI_LOG_CONTENT=0` 可关闭请求/响应体记录，仍记录状态和耗时。
-
-429 表示限流或模型繁忙，等待提示来自服务端 `Retry-After` 或本地冷却剩余时间；等候结束后仍可能受限。402 且没有等待时间时会单独提示余额或额度不足。具体原因查看响应体的 `error.message` 和 `error.metadata`。
-
-句子分析和「测试连接」发生接口错误时，在通用提示下直接显示 HTTP 状态与脱敏后的服务端响应，包括错误消息、供应商和上游详情。JSON 保留缩进，非 JSON 响应按普通文字显示；长内容可滚动，超过 8,000 字符的详情截断，完整响应仍可查日志。重新请求或成功后会清除旧错误。
-
-真实服务验证需先在应用中保存配置，并提供唯一的配置名称和模型 ID。以下显式命令使用已保存的系统加密密钥，读取原数据库，在内存数据库中运行验证；不修改墨墨学习规划或真实分析历史。结果保存到 `test-results/ai-live-verification.json`。默认执行连接测试、单句和短段落；`--quality` 改为执行 17 条公开质量样例（每项最多两次生成调用）。
-
-```sh
-node scripts/verify-ai.cjs --profile "配置名称" --model "模型ID"
-node scripts/verify-ai.cjs --profile "配置名称" --model "模型ID" --quality
+```powershell
+npm run release:verify -- "dist/release-0.0.1-snapshot.20261004.1-实际时间戳"
 ```
 
-样例与人工核对标准见 [质量验收样例](docs/SENTENCE_ANALYSIS_SAMPLES.md)，真实联调状态见 [句子分析验收记录](docs/SENTENCE_ANALYSIS_ACCEPTANCE.md)。
+## 发布到 GitHub Releases
 
-当前独立真实验证入口在本机读取系统加密密钥时尚未成功，暂不能作为真实服务通过的证据；可在应用内使用「测试连接」及分析页验收。
+发布顺序：**更新版本与说明 → 检查并打包 → 提交及推送标签 → 上传草稿附件 → 核对后公开**。本地打包不会自动上传。
 
-## 数据与恢复
+<details>
+<summary>展开完整发布步骤与命令（PowerShell）</summary>
 
-SQLite 文件为应用数据目录下的 `cijing.sqlite3`，只由主进程访问，包含版本化迁移、配置、操作日志和桌面设置。Windows 默认使用 `%APPDATA%/cijing/`，显式指定的数据目录优先。项目尚未发布，不提供旧开发版本的数据目录探测、回退或迁移。保留 SQLite 主文件及可能存在的 `-wal`、`-shm` 文件；不要在应用运行时手动替换数据库。
+本节适用于有目标仓库写入和发布权限的维护者。其他开发者可直接执行上面的本地打包流程；若要发行自己的 Fork，请先将 `origin` 指向自己的仓库，并在构建前同步修改 `electron-builder.yml` 的 `publish.owner` / `publish.repo` 以及 `src/main/updates/release-source.ts` 的 `REPOSITORY`，让打包配置和客户端更新源指向同一仓库。
 
-发送添加请求前会提交一条 `submitting` 日志。正常退出或崩溃后，重启将遗留日志转换成 `uncertain`，最多自动确认当前配置的 5 条待确认操作；遇鉴权、网络或限流错误停止本轮，其余记录可在历史页手动确认。整个恢复流程只读，不自动重新添加。
+以下命令使用 [GitHub CLI](https://cli.github.com/)。先安装并登录拥有仓库发布权限的账号；`setup-git` 用于配置 HTTPS 推送的登录凭证。选择网页发布时，可跳过 CLI 登录，使用自己的 Git 认证方式推送：
 
-## 验证
-
-```sh
-npm test           # Vitest：187 项测试，包括真实 SQLite 临时数据库
-npm run build      # strict 类型检查与三个进程的生产构建
-npm run test:e2e   # Playwright：原桌面流程与句子分析验收（真实音频验证默认跳过）
+```powershell
+gh auth login
+gh auth status
+gh auth setup-git
 ```
 
-普通测试不使用真实 Token、不访问真实账号。`npm test` 在 Electron 的 Node 模式下运行 Vitest，使测试与应用使用相同的 SQLite ABI。桌面测试通过独立测试入口替换 `net.fetch`，使用临时应用数据目录，并实际调用 Windows `safeStorage`；生产入口没有模拟模式。端到端测试需要可运行 Electron 的桌面环境及可用的系统加密服务。当前验证平台为 Windows x64；其他平台尚未验收。
+### 1. 确定版本并编写发布说明
 
-详细记录见 [M2 验收记录](docs/M2_ACCEPTANCE.md)，此前真实账号联调见 [M1 验收记录](docs/M1_ACCEPTANCE.md)。
+以下以发布快照 `0.0.1-snapshot.20261004.1` 为例，在同一个 PowerShell 会话中操作；后续发布应替换成尚未发布的版本号：
 
-## 当前边界
+```powershell
+$version = '0.0.1-snapshot.20261004.1'
+$tag = "v$version"
+$repo = 'lychee955/cijing' # Fork 发布时改为自己的 owner/repo
+$notes = "docs/RELEASE_NOTES_$version.md"
 
-GitHub Releases 分发、Logo 下方更新入口及后续 macOS 扩展的待实施安排见 [软件更新与发布实施方案](docs/UPDATE_RELEASE_PLAN.md)。
+npm version $version --no-git-tag-version
+```
 
-- 已具备主进程网络访问、有限 preload 契约、IPC 参数和来源校验、严格生产 CSP、导航/新窗口限制。
-- 写入不自动重试；按配置与词条合并并发添加，历史中的待确认结果会阻止重新提交。查询有限重试，包含三时间窗口限流和服务端 `Retry-After` 处理。
-- 本地记录表示本客户端的操作结果，不能当作手机端全部学习状态；学习记录同步可能延迟。
-- 安装包、各平台 CI、签名与 macOS/Linux 实机验收仍属于 M3；没有默认启用开机启动、自动更新或剪贴板监听。
+这条命令同步更新 `package.json` 和 `package-lock.json`，不会创建 Git 提交或标签。参照 [发布说明模板](docs/RELEASE_NOTES_TEMPLATE.md) 新建 `$notes` 指向的 Markdown 文件，写明本次变化、下载方式和已知限制。同步维护 [发布流程](docs/RELEASING.md) 中的当前版本。快照编号格式为 `X.Y.Z-snapshot.YYYYMMDD.N`，每轮公开构建增加编号；正式版使用 `X.Y.Z`。
 
-## 结构
+### 2. 构建并确认本次产物
+
+在版本、代码和发布说明确定后执行：
+
+```powershell
+npm run check
+npm run test:e2e
+npm run dist
+
+# 替换为刚才命令输出的真实目录；不要混用其他构建目录。
+$releaseDir = 'dist/release-0.0.1-snapshot.20261004.1-实际时间戳'
+npm run release:verify -- $releaseDir
+
+$manifest = Get-Content -LiteralPath (Join-Path $releaseDir 'release-manifest.json') -Raw | ConvertFrom-Json
+if ($manifest.version -ne $version) { throw '产物版本与待发布版本不一致' }
+$metadataFile = $manifest.metadataFile
+$assets = @($manifest.artifacts | ForEach-Object { Join-Path $releaseDir $_.name })
+$manifest.artifacts | Format-Table name, size, sha256 -AutoSize
+```
+
+确认实际安装、启动及核心功能可用后继续。只上传清单中的四项附件；`release-manifest.json` 留作本地复核，`win-unpacked/` 和其他中间文件不上传。修改了代码或版本号后，需要重新构建并更新 `$releaseDir`。
+
+### 3. 提交并推送代码与标签
+
+先检查 `git status` 和差异，再暂存本次要发布的文件。以下示例适用于当前工作区所有改动都属于本次发布的情况；如有无关改动，应改为明确指定文件：
+
+```powershell
+git status --short
+git diff
+git add -A
+git diff --cached --check
+git diff --cached --stat
+git commit -m "chore: release $tag"
+git tag $tag
+git push --atomic origin HEAD "refs/tags/$tag"
+```
+
+在正常本地分支上执行上述命令，并确保 `origin` 对应 `$repo`。若仓库要求通过 PR 合并，先完成合并，再检出最终发布提交、打标签并推送标签；发布附件必须由该提交的代码构建。不要移动已发布标签或覆盖已公开的安装包，后续修改应提升版本号。
+
+### 4. 创建草稿、上传附件并公开
+
+创建草稿时一次上传清单中的四个文件，并从 Markdown 文件读取完整发布说明：
+
+```powershell
+gh release create $tag @assets --repo $repo --draft --prerelease --latest=false --verify-tag --title "词境 $tag" --notes-file $notes
+gh release view $tag --repo $repo --json tagName,isDraft,assets,url
+gh release view $tag --repo $repo --web
+```
+
+`--verify-tag` 要求标签已存在于远端。打开草稿，核对发布说明、版本和四个附件；可用下面的命令查看远端附件大小和 SHA-256，与本地 `release-manifest.json` 比较：
+
+```powershell
+gh api "repos/$repo/releases/tags/$tag" --jq '.assets[] | {name, size, digest}'
+```
+
+如果上传中断，先检查草稿现有附件，再用 `gh release upload $tag "缺失文件的完整路径" --repo $repo` 补传缺失文件。确认完整后，公开快照预发布版：
+
+```powershell
+gh release edit $tag --repo $repo --draft=false --prerelease --latest=false
+gh release view $tag --repo $repo --json tagName,isDraft,url
+```
+
+也可以使用 GitHub 网页：进入目标仓库的 **Releases → Draft a new release**，选择已推送的标签，填写标题和发布说明，上传清单中的四项附件，勾选 **Set as a pre-release**，不设为 Latest，核对后点击 **Publish release**。网页方式无需安装 GitHub CLI。
+
+发布后检查 `https://github.com/<owner>/<repo>/releases/tag/<tag>` 和 `https://github.com/<owner>/<repo>/releases/download/<tag>/<metadataFile>` 可公开访问（元数据文件名以清单为准，快照为 `snapshot.yml`），元数据版本与安装包一致。匿名 GitHub API 可能限流，403/429 不代表附件上传失败。
+
+正式版须满足正式发布验收条件；使用不带快照后缀的版本号，草稿不加 `--prerelease`，公开时使用 `--prerelease=false --latest`，元数据为 `latest.yml`。
+
+CLI 参数说明见 [创建 Release](https://cli.github.com/manual/gh_release_create)、[上传附件](https://cli.github.com/manual/gh_release_upload) 和 [发布草稿](https://cli.github.com/manual/gh_release_edit)。签名配置、自动安装启用条件与完整升级验收要求见 [发布与更新说明](docs/RELEASING.md)。
+
+</details>
+
+## 项目结构
 
 ```text
-src/main/maimemo/    官方接口适配、响应校验、错误与限流
-src/main/services/   查询词条授权、添加与确认状态机
-src/main/storage/    SQLite 迁移、操作日志、配置和加密凭证
-src/main/windows.ts 窗口、隐藏和显示器校正
-src/main/tray.ts     托盘菜单
-src/main/shortcuts.ts 全局快捷键注册与回滚
-src/main/ipc/        业务 IPC 与来源校验
-src/preload/        仅暴露类型化业务方法
-src/renderer/       Vue 界面与 Pinia 临时状态
-src/shared/         跨进程契约及可序列化 Result
-tests/unit/         业务、凭证、参数、来源、查询顺序测试
-tests/e2e/          独立模拟入口与 Electron 操作流程
+src/
+  main/        主进程：接口、业务服务、数据库、窗口与更新
+  preload/     向渲染层提供受限的桌面接口
+  renderer/    Vue 页面、组件和 Pinia 状态
+  shared/      跨进程契约、数据类型与品牌配置
+tests/
+  unit/        单元测试
+  e2e/         Electron 桌面回归
+scripts/       构建、打包与校验脚本
+build/         图标和安装器资源
+docs/          使用指南、发布流程与设计验收记录
 ```
 
-接口按 [官方 OpenAPI](https://open.maimemo.com/api_bundle.yaml) 与 [官方 CLI 的响应处理](https://github.com/maimemo/memo-api-cli/blob/main/src/client.ts) 实施。公开规范快照见 `docs/api_bundle.yaml`；多结果查询的具体适配决定见验收记录。
+## 文档
+
+| 文档 | 内容 |
+| --- | --- |
+| [使用指南](docs/USAGE.md) | 查词、AI 配置、历史、数据恢复与常见问题 |
+| [发布与更新](docs/RELEASING.md) | 签名配置、更新策略及实机验收 |
+| [发布说明模板](docs/RELEASE_NOTES_TEMPLATE.md) | 编写新版本说明 |
+| [技术方案](TECHNICAL_PLAN.md) | 项目架构与技术设计 |
+| [句子分析方案](docs/SENTENCE_ANALYSIS_PLAN.md) | AI 接口、提示词与结果契约 |
+| [分析质量样例](docs/SENTENCE_ANALYSIS_SAMPLES.md) | 人工质量核对样例 |
+| [更新验收记录](docs/UPDATE_RELEASE_ACCEPTANCE.md) | 已完成验证及待验收事项 |
+
+## 反馈与贡献
+
+欢迎通过 [Issues](https://github.com/lychee955/cijing/issues) 报告问题或讨论改进。报告问题时请附上应用版本、Windows 版本、复现步骤和必要截图；不要提交 Token、API Key 或未经检查的完整日志。
+
+提交代码前运行 `npm run check`；涉及桌面行为时运行 `npm run test:e2e`。PR 请说明改动目的、用户可见的变化和验证结果。
+
+## 相关服务
+
+- [墨墨开放 API](https://open.maimemo.com/api_bundle.yaml)：词条查询与学习规划；项目内保留 [接口规范快照](docs/api_bundle.yaml)。
+- [UAPI 词典](https://uapis.cn/docs/api-reference/get-dictionary-lookup)与[发音接口](https://uapis.cn/docs/api-reference/get-dictionary-audio)：中文释义、音标和音频。
