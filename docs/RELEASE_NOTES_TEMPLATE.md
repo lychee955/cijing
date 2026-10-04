@@ -15,7 +15,7 @@
 - 首发使用「首次使用」说明 Token 和 AI 配置入口；后续版本通常使用「升级说明」，无需重复全部入门步骤。
 - 发布前核对 `package.json`、`package-lock.json`、Git 标签、正文版本和附件文件名一致，移除所有占位符与不适用章节。
 - 快照版必须标记 Pre-release、不设为 Latest，并明确未完成的验证及数据目录是否隔离。
-- 参考快照草稿：[词境 v0.0.1-snapshot.20261004.1](RELEASE_NOTES_0.0.1-snapshot.20261004.1.md)。
+- 参考快照发布说明：[词境 v0.0.2-snapshot.20261004.1](RELEASE_NOTES_0.0.2-snapshot.20261004.1.md)。
 
 ---
 

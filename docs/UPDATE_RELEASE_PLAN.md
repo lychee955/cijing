@@ -2,7 +2,7 @@
 
 日期：2026-10-03。
 
-状态：已实施主进程更新服务、品牌区界面、Windows x64 打包与本地元数据校验。自动安装仍受签名和实机验收开关保护；当前代码为快照开发版 0.0.1-snapshot.20261004.1；真实旧版升级尚未验收，当前没有公开 Release。实施结果见 [UPDATE_RELEASE_ACCEPTANCE.md](UPDATE_RELEASE_ACCEPTANCE.md)，发布操作见 [RELEASING.md](RELEASING.md)。下文保留原设计与实施前基线。
+状态：已实施主进程更新服务、品牌区界面、Windows x64 打包与本地元数据校验。自动安装仍受签名和实机验收开关保护；当前代码为快照开发版 0.0.2-snapshot.20261004.1；真实旧版升级尚未验收，以 Pre-release 分发快照，尚无正式版。实施结果见 [UPDATE_RELEASE_ACCEPTANCE.md](UPDATE_RELEASE_ACCEPTANCE.md)，发布操作见 [RELEASING.md](RELEASING.md)。下文保留原设计与实施前基线。
 
 ## 1. 目标与范围
 

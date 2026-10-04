@@ -1,10 +1,10 @@
 # Windows 发布与更新
 
-当前代码版本：0.0.1-snapshot.20261004.1，处于快照开发阶段，尚未发布。首期分发仓库为公开的 `lychee955/cijing`，只构建 Windows x64。首次含更新功能的版本仍须手动安装。
+当前代码版本：0.0.2-snapshot.20261004.1，处于快照测试阶段。首期分发仓库为公开的 `lychee955/cijing`，只构建 Windows x64。首次含更新功能的版本仍须手动安装。
 
 ## 当前交付状态
 
-- 当前没有可下载的公开版本；后续快照使用 Pre-release，正式版验收条件保持不变。
+- 当前仅分发快照测试版，使用 Pre-release，正式版验收条件保持不变。
 - Logo 下方版本入口、更新面板、后台检查、便携版下载入口已实现。
 - NSIS 下载、校验、退出协调已实现，但 `src/main/updates/policy.json` 的实机验收开关为 `false`。未验收的安装版使用发布页面手动更新。
 - 不改变 `com.lychee955.cijing`、包名 `cijing`、数据库结构或用户数据位置。Windows 同一账号仍使用 `%APPDATA%/cijing/`。
@@ -33,7 +33,7 @@ npm run dist
 单独复核：
 
 ```powershell
-npm run release:verify -- "dist/release-0.0.1-snapshot.20261004.1-具体时间戳"
+npm run release:verify -- "dist/release-0.0.2-snapshot.20261004.1-具体时间戳"
 ```
 
 锁定工具：electron-builder 26.15.3、electron-updater 6.8.9。正式版打包实验确认 `latest.yml.files` 只有 x64 NSIS 安装包；便携包不进入该列表。未来多架构不得直接合并或相互覆盖同名 `latest.yml`，须另行验收。

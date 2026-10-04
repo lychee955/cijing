@@ -39,8 +39,8 @@ describe('release selection and completeness', () => {
     const f = fixture(); f.release[flag] = true
     await expect(f.source.check(env)).rejects.toThrow('非正式')
   })
-  it('does not offer semver prereleases even if the API labels them stable', async () => {
-    await expect(fixture('0.10.0-beta.1').source.check(env)).rejects.toThrow('非正式')
+  it.each(['0.10.0-beta.1', '0.10.0-snapshot.20261004.1'])('does not offer prerelease %s even if the API labels it stable', async version => {
+    await expect(fixture(version).source.check(env)).rejects.toThrow('非正式')
   })
   it.each([{ platform: 'darwin' }, { arch: 'arm64' }])('never offers mismatched platform or arch %o', async patch => {
     expect(await fixture().source.check({ ...env, ...patch })).toMatchObject({ phase: 'noCompatiblePackage' })

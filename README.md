@@ -6,7 +6,7 @@
 
 **查词、理解句子，把遇到的生词加入学习规划。**
 
-词境是一款桌面英语学习工具，整合词典查询、AI 句子分析与墨墨生词收录。基于 Electron、Vue 3 和 TypeScript 构建，当前处于快照开发阶段，版本为 `0.0.1-snapshot.20261004.1`，支持构建 Windows x64 安装版和便携版。
+词境是一款桌面英语学习工具，整合词典查询、AI 句子分析与墨墨生词收录。基于 Electron、Vue 3 和 TypeScript 构建，当前处于快照开发阶段，版本为 `0.0.2-snapshot.20261004.1`，支持构建 Windows x64 安装版和便携版。
 
 [查看测试版本](https://github.com/lychee955/cijing/releases) · [快速上手](#快速上手) · [本地开发](#本地开发) · [本地打包](#本地打包) · [发布版本](#发布到-github-releases) · [问题反馈](https://github.com/lychee955/cijing/issues)
 
@@ -22,7 +22,7 @@
 
 ## 下载与安装
 
-当前暂无已发布版本。后续快照发布后，前往 [GitHub Releases](https://github.com/lychee955/cijing/releases)，从 Assets 选择一个 `.exe` 文件：
+当前提供快照测试版，前往 [GitHub Releases](https://github.com/lychee955/cijing/releases)，从 Assets 选择一个 `.exe` 文件：
 
 | 发行文件 | 使用方式 |
 | --- | --- |
@@ -122,13 +122,13 @@ npm run dist
 
 只在本地打包不需要 GitHub 账号、发布令牌或代码签名证书；所需构建工具由项目依赖提供，无需全局安装 Electron 或 electron-builder。首次打包还需要下载 electron-builder 的 Windows 打包工具，请确保可以访问相应下载地址。
 
-每次打包会创建独立目录 `dist/release-<版本号>-<时间戳>/`，实际路径见命令输出。版本号来自 `package.json`。例如版本为 `0.0.1-snapshot.20261004.1` 时：
+每次打包会创建独立目录 `dist/release-<版本号>-<时间戳>/`，实际路径见命令输出。版本号来自 `package.json`。例如版本为 `0.0.2-snapshot.20261004.1` 时：
 
 | 文件 | 用途 |
 | --- | --- |
-| `cijing-0.0.1-snapshot.20261004.1-win-x64-setup.exe` | NSIS 安装版 |
-| `cijing-0.0.1-snapshot.20261004.1-win-x64-portable.exe` | 便携版 |
-| `cijing-0.0.1-snapshot.20261004.1-win-x64-setup.exe.blockmap` | 安装版更新配套文件 |
+| `cijing-0.0.2-snapshot.20261004.1-win-x64-setup.exe` | NSIS 安装版 |
+| `cijing-0.0.2-snapshot.20261004.1-win-x64-portable.exe` | 便携版 |
+| `cijing-0.0.2-snapshot.20261004.1-win-x64-setup.exe.blockmap` | 安装版更新配套文件 |
 | `snapshot.yml` | 快照元数据，描述本次安装包的版本、大小和 SHA-512 |
 | `release-manifest.json` | 本地核对清单，包含四项发布附件的名称、大小和 SHA-256 |
 
@@ -137,7 +137,7 @@ npm run dist
 可随时重新校验某一次产物；将目录替换为本次打包输出的实际路径：
 
 ```powershell
-npm run release:verify -- "dist/release-0.0.1-snapshot.20261004.1-实际时间戳"
+npm run release:verify -- "dist/release-0.0.2-snapshot.20261004.1-实际时间戳"
 ```
 
 ## 发布到 GitHub Releases
@@ -159,10 +159,10 @@ gh auth setup-git
 
 ### 1. 确定版本并编写发布说明
 
-以下以发布快照 `0.0.1-snapshot.20261004.1` 为例，在同一个 PowerShell 会话中操作；后续发布应替换成尚未发布的版本号：
+以下以发布快照 `0.0.2-snapshot.20261004.1` 为例，在同一个 PowerShell 会话中操作；后续发布应替换成尚未发布的版本号：
 
 ```powershell
-$version = '0.0.1-snapshot.20261004.1'
+$version = '0.0.2-snapshot.20261004.1'
 $tag = "v$version"
 $repo = 'lychee955/cijing' # Fork 发布时改为自己的 owner/repo
 $notes = "docs/RELEASE_NOTES_$version.md"
@@ -182,7 +182,7 @@ npm run test:e2e
 npm run dist
 
 # 替换为刚才命令输出的真实目录；不要混用其他构建目录。
-$releaseDir = 'dist/release-0.0.1-snapshot.20261004.1-实际时间戳'
+$releaseDir = 'dist/release-0.0.2-snapshot.20261004.1-实际时间戳'
 npm run release:verify -- $releaseDir
 
 $manifest = Get-Content -LiteralPath (Join-Path $releaseDir 'release-manifest.json') -Raw | ConvertFrom-Json
