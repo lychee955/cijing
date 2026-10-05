@@ -22,23 +22,26 @@ export const useSearchStore = defineStore("search", () => {
     const selected = computed(() => words.value.find((word) => word.id === selectedId.value));
     const checkingSelected = computed(() => !!studyStatuses.value[selectedId.value]?.loading);
     const selectedOutcome = computed(() => outcome.value ?? studyStatuses.value[selectedId.value]?.outcome);
+    const canOperate = computed(
+        () => !!selected.value && !submitting.value && !querying.value && !checkingSelected.value
+    );
     const canAdd = computed(
         () =>
-            !!selected.value &&
-            !submitting.value &&
-            !querying.value &&
-            !checkingSelected.value &&
+            canOperate.value &&
             (!selectedOutcome.value || ["failed", "unconfirmed"].includes(selectedOutcome.value.state))
     );
 
-    function invalidate(): void {
-        sequence++;
+    function resetResults(): void {
         words.value = [];
         studyStatuses.value = {};
         selectedId.value = "";
         outcome.value = null;
         message.value = "";
         searched.value = false;
+    }
+    function invalidate(): void {
+        sequence++;
+        resetResults();
         querying.value = false;
     }
     function select(id: string): void {
@@ -68,12 +71,7 @@ export const useSearchStore = defineStore("search", () => {
     async function lookup(): Promise<void> {
         if (submitting.value || !input.value.trim()) return;
         const request = ++sequence;
-        words.value = [];
-        selectedId.value = "";
-        outcome.value = null;
-        message.value = "";
-        searched.value = false;
-        studyStatuses.value = {};
+        resetResults();
         querying.value = true;
         try {
             const result = await window.desktop.vocabulary.lookup(input.value.trim());
@@ -92,14 +90,7 @@ export const useSearchStore = defineStore("search", () => {
         }
     }
     async function submit(confirm = false): Promise<void> {
-        if (
-            !selected.value ||
-            submitting.value ||
-            querying.value ||
-            checkingSelected.value ||
-            (!confirm && !canAdd.value)
-        )
-            return;
+        if (!(confirm ? canOperate.value : canAdd.value)) return;
         submitting.value = true;
         message.value = "";
         const request = sequence;

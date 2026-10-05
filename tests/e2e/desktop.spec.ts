@@ -27,6 +27,28 @@ async function configure(): Promise<void> {
     await page.getByRole("button", {name: "查词", exact: true}).click();
     await expect(page.getByRole("button", {name: "配置个人 Token", exact: true})).toHaveCount(0);
 }
+
+test("system appearance reacts to changes and matches the corresponding manual theme", async () => {
+    await page.getByRole("button", {name: "设置", exact: true}).click();
+    await page.emulateMedia({colorScheme: "dark"});
+    await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "dark");
+    await expect(page.locator(".settings-card").first()).toHaveCSS("background-color", "rgb(44, 53, 44)");
+    await page.getByRole("button", {name: "停用", exact: true}).click();
+    await page.getByLabel("外观", {exact: true}).selectOption("light");
+    await page.getByRole("button", {name: "保存桌面设置", exact: true}).click();
+    await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "light");
+    await expect(page.locator(".settings-card").first()).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await page.getByLabel("外观", {exact: true}).selectOption("system");
+    await page.getByRole("button", {name: "保存桌面设置", exact: true}).click();
+    await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "dark");
+    await page.emulateMedia({colorScheme: "light"});
+    await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "light");
+    await expect(page.locator(".settings-card").first()).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await page.getByLabel("外观", {exact: true}).selectOption("dark");
+    await page.getByRole("button", {name: "保存桌面设置", exact: true}).click();
+    await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "dark");
+    await expect(page.locator(".settings-card").first()).toHaveCSS("background-color", "rgb(44, 53, 44)");
+});
 async function mode(value: string): Promise<void> {
     await app.evaluate((_electron, value) => {
         (globalThis as unknown as {momoMock: {mode: string}}).momoMock.mode = value;

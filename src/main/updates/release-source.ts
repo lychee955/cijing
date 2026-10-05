@@ -1,6 +1,7 @@
 import {gt, valid, prerelease, lt} from "semver";
 import {z} from "zod";
 import type {UpdateCandidate, UpdateEnvironment} from "../../shared/update";
+import {retryAfterDelay} from "../../shared/retry-after";
 
 export const REPOSITORY = "lychee955/cijing";
 export const UPDATE_ENDPOINTS: readonly string[] = [
@@ -125,11 +126,9 @@ export class StaticManifestSource {
             if (response.status === 403 || response.status === 429) {
                 const retry = response.headers.get("retry-after"),
                     reset = Number(response.headers.get("x-ratelimit-reset")) * 1000;
-                const retryTime = retry
-                    ? /^\d+$/.test(retry)
-                        ? this.now() + Number(retry) * 1000
-                        : Date.parse(retry)
-                    : 0;
+                const now = this.now();
+                const delay = retryAfterDelay(retry, now, true);
+                const retryTime = delay === undefined ? 0 : now + delay;
                 throw new UpdateFailure(
                     "更新源暂时限制访问，请稍后重试。",
                     Math.max(this.now() + 60_000, reset || 0, retryTime || 0)

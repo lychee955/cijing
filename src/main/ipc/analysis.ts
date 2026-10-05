@@ -1,10 +1,10 @@
-import {ipcMain, type BrowserWindow} from "electron";
+import type {BrowserWindow} from "electron";
 import {z} from "zod";
 import {channels} from "../../shared/contracts";
 import {AiError, aiResult} from "../ai/errors";
 import {profileInputSchema, templates} from "../ai/config";
 import {AnalysisService, analysisRequestSchema} from "../services/analysis-service";
-import {validateSender} from "./security";
+import {createIpcRegistrar} from "./register";
 import {ExitGate} from "../updates/exit-gate";
 export function registerAnalysisIpc(
     window: BrowserWindow,
@@ -12,30 +12,15 @@ export function registerAnalysisIpc(
     service: AnalysisService,
     gate = new ExitGate()
 ): void {
-    const registered: string[] = [];
-    const handle = <T extends unknown[]>(channel: string, schema: z.ZodType<T>, action: (...args: T) => unknown) => {
-        registered.push(channel);
-        ipcMain.handle(channel, (event, ...args: unknown[]) =>
-            aiResult(async () => {
-                try {
-                    validateSender(
-                        {
-                            trustedContents: event.sender === window.webContents,
-                            mainFrame: event.senderFrame !== null && event.senderFrame === window.webContents.mainFrame,
-                            url: event.senderFrame?.url ?? ""
-                        },
-                        allowedUrl
-                    );
-                } catch {
-                    throw new AiError("FORBIDDEN");
-                }
-                const parsed = schema.safeParse(args);
-                if (!parsed.success) throw new AiError("INVALID_INPUT");
-                if (gate.closing) throw new AiError("AI_BUSY");
-                return gate.run(() => action(...parsed.data));
-            })
-        );
-    };
+    const handle = createIpcRegistrar(window, allowedUrl, {
+        result: aiResult,
+        error: (code) => new AiError(code),
+        run: (action) => {
+            if (gate.closing) throw new AiError("AI_BUSY");
+            return gate.run(action);
+        },
+        onClose: () => service.cancel()
+    });
     const id = z.string().uuid(),
         noArgs = z.tuple([]);
     handle(channels.aiConfig, noArgs, () => service.store.configuration());
@@ -58,8 +43,4 @@ export function registerAnalysisIpc(
         return record;
     });
     handle(channels.analysisDelete, z.tuple([id.optional()]), (value?: string) => service.store.deleteHistory(value));
-    window.on("closed", () => {
-        service.cancel();
-        for (const channel of registered) ipcMain.removeHandler(channel);
-    });
 }

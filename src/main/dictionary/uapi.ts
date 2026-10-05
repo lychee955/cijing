@@ -1,6 +1,7 @@
 import {z} from "zod";
 import type {DictionaryEntry} from "../../shared/models";
 import type {Fetcher} from "../maimemo/client";
+import {retryAfterDelay} from "../../shared/retry-after";
 
 const textSchema = z.string().max(100_000);
 const accentSchema = z.object({text: textSchema.optional()});
@@ -89,10 +90,8 @@ export class UapiDictionary implements Dictionary {
                 void response.body?.cancel().catch(() => {});
                 if (response.status === 404) return {interpretations: []};
                 if (response.status === 429) {
-                    const retry = response.headers.get("retry-after");
-                    const delay =
-                        retry && /^\d+$/.test(retry) ? Number(retry) * 1000 : Date.parse(retry ?? "") - Date.now();
-                    this.blockedUntil = Date.now() + (Number.isFinite(delay) && delay > 0 ? delay : 60_000);
+                    const delay = retryAfterDelay(response.headers.get("retry-after"), Date.now(), true);
+                    this.blockedUntil = Date.now() + (delay !== undefined && delay > 0 ? delay : 60_000);
                     throw new DictionaryError("UAPI 请求过于频繁或免费额度不足，请稍后重试。");
                 }
                 if ([401, 402, 403].includes(response.status))

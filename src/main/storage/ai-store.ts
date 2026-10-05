@@ -1,7 +1,7 @@
 import {randomUUID} from "node:crypto";
 import type {AiConfiguration, AiProfile, AiProfileInput, OutputMode} from "../../shared/ai";
 import type {AnalysisHistory, AnalysisRecord} from "../../shared/analysis";
-import type {Encryption} from "./credential-store";
+import {canEncrypt, type Encryption} from "./encryption";
 import type {OperationsDatabase} from "./database";
 import {AiError} from "../ai/errors";
 import {optionsSchema, profileInputSchema} from "../ai/config";
@@ -35,6 +35,10 @@ export class AiStore {
         return this.db.connection.prepare("SELECT * FROM ai_profiles ORDER BY created_at, rowid").all() as Row[];
     }
 
+    private row(id: string): Row | undefined {
+        return this.db.connection.prepare("SELECT * FROM ai_profiles WHERE id=?").get(id) as Row | undefined;
+    }
+
     private public(row: Row): AiProfile {
         return {
             id: row.id,
@@ -59,17 +63,14 @@ export class AiStore {
     }
 
     private available(): boolean {
-        return (
-            this.encryption.isEncryptionAvailable() &&
-            !(this.platform === "linux" && this.encryption.getSelectedStorageBackend?.() === "basic_text")
-        );
+        return canEncrypt(this.encryption, this.platform);
     }
 
     save(input: AiProfileInput): AiProfile {
         const parsed = profileInputSchema.safeParse(input);
         if (!parsed.success) throw new AiError("INVALID_INPUT");
         const value = parsed.data,
-            old = value.id ? this.rows().find((r) => r.id === value.id) : undefined;
+            old = value.id ? this.row(value.id) : undefined;
         if (value.id && !old) throw new AiError("AI_CONFIG");
         const hostChanged = old && new URL(old.base_url).host !== new URL(value.baseUrl).host;
         let ciphertext = hostChanged ? Buffer.alloc(0) : (old?.ciphertext ?? Buffer.alloc(0));
@@ -105,9 +106,9 @@ export class AiStore {
                     now,
                     now
                 );
-            if (!this.configuration().activeId) this.db.writeSetting("aiActive", id);
+            if (!this.db.readSetting("aiActive")) this.db.writeSetting("aiActive", id);
         })();
-        return this.configuration().profiles.find((p) => p.id === id)!;
+        return this.public(this.row(id)!);
     }
 
     select(id: string): void {

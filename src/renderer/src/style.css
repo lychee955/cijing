@@ -1,4 +1,6 @@
 :root {
+  --surface-background: #fff;
+  --surface-border: #e0e4d9;
   font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
   color: #293d34;
   background: #f5f3ee;
@@ -158,35 +160,19 @@ summary {
 .analysis-history {
   margin-top: 36px;
 }
-:root[data-theme="dark"] :is(textarea, .sentence-card) {
-  background: #2c352c;
-  color: #dae4d8;
-  border-color: #475544;
+:root[data-color-scheme="dark"] :is(textarea, .sentence-card) {
+  background: var(--surface-background);
+  color: var(--theme-foreground);
+  border-color: var(--surface-border);
 }
-:root[data-theme="dark"] .backbone {
-  background: #354333;
+:root[data-color-scheme="dark"] .backbone {
+  background: var(--backbone-background);
 }
-:root[data-theme="dark"] .role-label {
-  color: #9ec9df;
+:root[data-color-scheme="dark"] .role-label {
+  color: var(--component-role-color);
 }
-:root[data-theme="dark"] .clause > summary .role-label {
-  color: #d4b4e2;
-}
-@media (prefers-color-scheme: dark) {
-  :root[data-theme="system"] :is(textarea, .sentence-card) {
-    background: #2c352c;
-    color: #dae4d8;
-    border-color: #475544;
-  }
-  :root[data-theme="system"] .backbone {
-    background: #354333;
-  }
-  :root[data-theme="system"] .role-label {
-    color: #9ec9df;
-  }
-  :root[data-theme="system"] .clause > summary .role-label {
-    color: #d4b4e2;
-  }
+:root[data-color-scheme="dark"] .clause > summary .role-label {
+  color: var(--clause-role-color);
 }
 @media (max-width: 680px) {
   .app-header {
@@ -850,12 +836,24 @@ h2 {
   line-height: 1.8;
   margin: 10px 0 0;
 }
-:root[data-theme="dark"] {
+:root[data-color-scheme="dark"] {
+  --dialog-danger: #e0a18d;
+  --update-entry-color: #a3c69b;
+  --clause-role-color: #d4b4e2;
+  --component-role-color: #9ec9df;
+  --backbone-background: #354333;
+  --notice-foreground: #293d34;
+  --selection-foreground: #fff;
+  --selection-background: #456143;
+  --page-background: #202720;
+  --surface-border: #475544;
+  --theme-foreground: #dae4d8;
+  --surface-background: #2c352c;
   color-scheme: dark;
-  color: #dae4d8;
-  background: #202720;
+  color: var(--theme-foreground);
+  background: var(--page-background);
 }
-:root[data-theme="dark"] .settings-page {
+:root[data-color-scheme="dark"] .settings-page {
   --account-muted: #a4b29e;
   --account-border: #475544;
   --account-tint: #252e25;
@@ -863,61 +861,27 @@ h2 {
   --account-warning: #e1b278;
   --account-danger: #e0a18d;
 }
-:root[data-theme="dark"] :is(.settings-card, .word-card, .history-card, .search-box, button, select) {
-  background: #2c352c;
-  color: #dae4d8;
-  border-color: #475544;
+:root[data-color-scheme="dark"] :is(.settings-card, .word-card, .history-card, .search-box, button, select) {
+  background: var(--surface-background);
+  color: var(--theme-foreground);
+  border-color: var(--surface-border);
 }
-:root[data-theme="dark"] input {
+:root[data-color-scheme="dark"] input {
   background: transparent;
-  color: #dae4d8;
+  color: var(--theme-foreground);
 }
-:root[data-theme="dark"] :is(.primary, nav button.active, .word-card.selected) {
-  background: #456143;
-  color: #fff;
+:root[data-color-scheme="dark"] :is(.primary, nav button.active, .word-card.selected) {
+  background: var(--selection-background);
+  color: var(--selection-foreground);
 }
-:root[data-theme="dark"] .app-header {
-  border-color: #475544;
+:root[data-color-scheme="dark"] .app-header {
+  border-color: var(--surface-border);
 }
-:root[data-theme="dark"] .notice {
-  color: #293d34;
+:root[data-color-scheme="dark"] .notice {
+  color: var(--notice-foreground);
 }
-:root[data-theme="dark"] .status-pill {
-  color: #293d34;
-}
-@media (prefers-color-scheme: dark) {
-  :root[data-theme="system"] .settings-page {
-    --account-muted: #a4b29e;
-    --account-border: #475544;
-    --account-tint: #252e25;
-    --account-accent: #a3c69b;
-    --account-warning: #e1b278;
-    --account-danger: #e0a18d;
-  }
-  :root[data-theme="system"] {
-    color-scheme: dark;
-    color: #dae4d8;
-    background: #202720;
-  }
-  :root[data-theme="system"] :is(.settings-card, .word-card, .history-card, .search-box, button, select) {
-    background: #2c352c;
-    color: #dae4d8;
-    border-color: #475544;
-  }
-  :root[data-theme="system"] input {
-    background: transparent;
-    color: #dae4d8;
-  }
-  :root[data-theme="system"] :is(.primary, nav button.active, .word-card.selected) {
-    background: #456143;
-    color: #fff;
-  }
-  :root[data-theme="system"] .app-header {
-    border-color: #475544;
-  }
-  :root[data-theme="system"] :is(.notice, .status-pill) {
-    color: #293d34;
-  }
+:root[data-color-scheme="dark"] .status-pill {
+  color: var(--notice-foreground);
 }
 @media (max-width: 680px) {
   main {
@@ -1020,25 +984,14 @@ h2 {
   width: 100%;
   accent-color: #345b43;
 }
-:root[data-theme="dark"] .update-panel {
-  background: #202720;
-  color: #dae4d8;
-  border-color: #475544;
+:root[data-color-scheme="dark"] .update-panel {
+  background: var(--page-background);
+  color: var(--theme-foreground);
+  border-color: var(--surface-border);
 }
-:root[data-theme="dark"] .update-entry {
-  color: #a3c69b;
+:root[data-color-scheme="dark"] .update-entry {
+  color: var(--update-entry-color);
   background: transparent;
-}
-@media (prefers-color-scheme: dark) {
-  :root[data-theme="system"] .update-panel {
-    background: #202720;
-    color: #dae4d8;
-    border-color: #475544;
-  }
-  :root[data-theme="system"] .update-entry {
-    color: #a3c69b;
-    background: transparent;
-  }
 }
 @media (max-width: 680px) {
   .app-header {

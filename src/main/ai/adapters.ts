@@ -6,6 +6,7 @@ import type {AiSnapshot} from "../storage/ai-store";
 import {AiError, apiErrorDetails} from "./errors";
 import {geminiSchema, jsonSchema} from "./schema";
 import type {AiLog} from "./logging";
+import {retryAfterDelay} from "../../shared/retry-after";
 export type AiFetch = (url: string, init: RequestInit) => Promise<Response>;
 export interface Generation {
     text: string;
@@ -102,10 +103,8 @@ async function readBody(response: Response): Promise<string> {
     }
 }
 export function retryAfter(value: string | null): number | undefined {
-    if (!value) return;
-    const n = Number(value),
-        seconds = Number.isFinite(n) ? n : (Date.parse(value) - Date.now()) / 1000;
-    return Number.isFinite(seconds) ? Math.max(1, Math.ceil(seconds)) : undefined;
+    const delay = retryAfterDelay(value, Date.now());
+    return delay === undefined ? undefined : Math.max(1, Math.ceil(delay / 1000));
 }
 abstract class HttpAdapter implements AiAdapter {
     constructor(

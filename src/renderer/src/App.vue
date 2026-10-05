@@ -25,6 +25,7 @@ async function lookupFromAnalysis(word: string): Promise<void> {
     await search.lookup();
 }
 let unsubscribe: (() => void) | undefined, unsubscribeChanged: (() => void) | undefined;
+const colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
 function keydown(event: KeyboardEvent): void {
     if (event.isComposing || event.keyCode === 229 || event.repeat) return;
     if (event.key === "Escape") {
@@ -39,17 +40,20 @@ function keydown(event: KeyboardEvent): void {
     }
 }
 onMounted(() => {
+    desktop.applyTheme();
+    colorScheme.addEventListener("change", desktop.applyTheme);
     void desktop.refresh();
     unsubscribe = window.desktop.desktop.onNavigate((next) => {
         page.value = next;
         if (next === "search") void nextTick(() => searchView.value?.focus());
     });
     unsubscribeChanged = window.desktop.desktop.onChanged(() => {
-        void desktop.refresh();
+        void desktop.refresh(true);
     });
     window.addEventListener("keydown", keydown);
 });
 onUnmounted(() => {
+    colorScheme.removeEventListener("change", desktop.applyTheme);
     unsubscribe?.();
     unsubscribeChanged?.();
     window.removeEventListener("keydown", keydown);

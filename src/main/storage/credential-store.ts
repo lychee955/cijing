@@ -6,12 +6,8 @@ import {ClientError} from "../maimemo/errors";
 import {tokenSchema} from "../maimemo/schemas";
 import type {CredentialStatus} from "../../shared/models";
 
-export interface Encryption {
-    isEncryptionAvailable(): boolean;
-    encryptString(value: string): Buffer;
-    decryptString(value: Buffer): string;
-    getSelectedStorageBackend?(): string;
-}
+import {canEncrypt, type Encryption} from "./encryption";
+export type {Encryption} from "./encryption";
 export interface CredentialSnapshot {
     profileId: string;
     token: string;
@@ -30,10 +26,7 @@ export class CredentialStore {
     ) {}
 
     private available(): boolean {
-        return (
-            this.encryption.isEncryptionAvailable() &&
-            !(this.platform === "linux" && this.encryption.getSelectedStorageBackend?.() === "basic_text")
-        );
+        return canEncrypt(this.encryption, this.platform);
     }
 
     status(): CredentialStatus {

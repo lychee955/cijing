@@ -66,7 +66,7 @@ function addProfile(): void {
 function closeEditor(): void {
     if (saving.value) return;
     editorDialog.value?.close();
-    resetEditor();
+    clearKey();
 }
 function edit(p: AiProfile): void {
     form.value = {
@@ -96,7 +96,6 @@ async function save(): Promise<void> {
         if (r.ok) {
             await analysis.refresh();
             editorDialog.value?.close();
-            resetEditor();
             message.value = r.data.hasKey ? "配置已保存。保存不会调用模型。" : "配置已保存，请补充该服务的 API Key。";
         } else formMessage.value = r.error.message;
     } catch {
@@ -369,9 +368,9 @@ onUnmounted(() => {
     max-height: calc(100vh - 40px);
     overflow-y: auto;
     padding: 24px;
-    border: 1px solid #e0e4d9;
+    border: 1px solid var(--surface-border);
     border-radius: 13px;
-    background: #fff;
+    background: var(--surface-background);
     color: inherit;
     box-shadow: 0 16px 48px #0003;
 }
@@ -428,18 +427,14 @@ onUnmounted(() => {
     justify-content: flex-end;
     margin-top: 4px;
 }
-:global(:root[data-theme="dark"] .ai-profile-dialog) {
-    background: #2c352c;
-    border-color: #475544;
-}
 .delete-profile-dialog {
     width: min(420px, calc(100vw - 40px));
     max-height: calc(100vh - 40px);
     overflow-y: auto;
     padding: 24px;
-    border: 1px solid #e0e4d9;
+    border: 1px solid var(--surface-border);
     border-radius: 13px;
-    background: #fff;
+    background: var(--surface-background);
     color: inherit;
     box-shadow: 0 16px 48px #0003;
 }
@@ -455,24 +450,7 @@ onUnmounted(() => {
 .delete-profile-dialog .actions {
     justify-content: flex-end;
 }
-:global(:root[data-theme="dark"] .delete-profile-dialog) {
-    background: #2c352c;
-    border-color: #475544;
-}
-:global(:root[data-theme="dark"] .delete-profile-dialog .danger) {
-    color: #e0a18d;
-}
-@media (prefers-color-scheme: dark) {
-    :global(:root[data-theme="system"] .ai-profile-dialog) {
-        background: #2c352c;
-        border-color: #475544;
-    }
-    :global(:root[data-theme="system"] .delete-profile-dialog) {
-        background: #2c352c;
-        border-color: #475544;
-    }
-    :global(:root[data-theme="system"] .delete-profile-dialog .danger) {
-        color: #e0a18d;
-    }
+:global(:root[data-color-scheme="dark"] .delete-profile-dialog .danger) {
+    color: var(--dialog-danger);
 }
 </style>

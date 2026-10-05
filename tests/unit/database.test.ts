@@ -202,4 +202,28 @@ describe("SQLite persistence and recovery", () => {
         const id = db.begin("other", word);
         expect(() => study.confirm(credentials, word, id)).toThrow();
     });
+    it("confirms a history operation from a single read and preserves its authoritative outcome", async () => {
+        const db = open(),
+            {study, contains, add} = setup(db);
+        const outcome = await study.add(credentials, word);
+        contains.mockResolvedValue(true);
+        const get = vi.spyOn(db, "get");
+        expect(await study.confirmOperation(credentials, outcome.operationId!)).toMatchObject({
+            state: "added",
+            operationId: outcome.operationId,
+            recordConfirmed: true
+        });
+        expect(get).toHaveBeenCalledOnce();
+        expect(add).toHaveBeenCalledOnce();
+    });
+    it("rejects missing and foreign history operations without querying the remote service", () => {
+        const db = open(),
+            {study, contains, add} = setup(db);
+        const foreign = db.begin("other", word);
+        for (const id of ["missing", foreign]) {
+            expect(() => study.confirmOperation(credentials, id)).toThrow();
+        }
+        expect(contains).not.toHaveBeenCalled();
+        expect(add).not.toHaveBeenCalled();
+    });
 });

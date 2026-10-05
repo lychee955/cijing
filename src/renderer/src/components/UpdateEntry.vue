@@ -47,7 +47,6 @@ const locked = computed(() =>
 );
 function close(): void {
     panel.value?.close();
-    entry.value?.focus();
 }
 function date(value?: string): string {
     return value ? new Date(value).toLocaleString("zh-CN") : "尚未检查";

@@ -1,8 +1,7 @@
-import {clipboard, ipcMain, type BrowserWindow} from "electron";
+import {clipboard, type BrowserWindow} from "electron";
 import {z} from "zod";
 import {channels} from "../../shared/contracts";
 import type {DesktopSettings, DesktopStatus} from "../../shared/models";
-import {ClientError, resultOf} from "../maimemo/errors";
 import {spellingSchema, tokenSchema, wordIdSchema} from "../maimemo/schemas";
 import type {CredentialStore} from "../storage/credential-store";
 import type {VocabularyService} from "../services/vocabulary-service";
@@ -10,7 +9,7 @@ import type {StudyService} from "../services/study-service";
 import type {SessionService} from "../services/session-service";
 import type {OperationsDatabase} from "../storage/database";
 import {settingsSchema} from "../storage/settings";
-import {validateSender} from "./security";
+import {createIpcRegistrar} from "./register";
 import {ExitGate} from "../updates/exit-gate";
 
 export interface DesktopControls {
@@ -40,26 +39,8 @@ export function registerIpc(
     desktop: DesktopControls,
     gate = new ExitGate()
 ): void {
-    const registered: string[] = [];
+    const handle = createIpcRegistrar(window, allowedUrl, {run: (action) => gate.run(action)});
     const noArgs = z.tuple([]);
-    const handle = <T extends unknown[]>(channel: string, schema: z.ZodType<T>, action: (...args: T) => unknown) => {
-        registered.push(channel);
-        ipcMain.handle(channel, (event, ...args: unknown[]) =>
-            resultOf(async () => {
-                validateSender(
-                    {
-                        trustedContents: event.sender === window.webContents,
-                        mainFrame: event.senderFrame !== null && event.senderFrame === window.webContents.mainFrame,
-                        url: event.senderFrame?.url ?? ""
-                    },
-                    allowedUrl
-                );
-                const parsed = schema.safeParse(args);
-                if (!parsed.success) throw new ClientError("INVALID_INPUT");
-                return gate.run(() => action(...parsed.data));
-            })
-        );
-    };
     handle(channels.credentialStatus, noArgs, () => session.status());
     handle(channels.credentialSave, z.tuple([tokenSchema]), (token) => session.save(token));
     handle(channels.credentialClear, noArgs, () => session.clear());
@@ -79,18 +60,11 @@ export function registerIpc(
     );
     handle(channels.historyList, z.tuple([historyQuerySchema]), (query) => database.list(query));
     handle(channels.historyConfirm, z.tuple([z.string().uuid()]), (id) =>
-        session.request((snapshot) => {
-            const operation = database.get(id);
-            if (!operation || operation.profileId !== snapshot.profileId) throw new ClientError("FORBIDDEN");
-            return study.confirm(snapshot, {id: operation.vocId, spelling: operation.spelling}, id);
-        })
+        session.request((snapshot) => study.confirmOperation(snapshot, id))
     );
     handle(channels.desktopStatus, noArgs, () => desktop.status());
     handle(channels.desktopSave, z.tuple([settingsSchema]), (settings) => desktop.save(settings));
     handle(channels.desktopHide, noArgs, () => desktop.hide());
     handle(channels.desktopQuit, noArgs, () => desktop.quit());
     handle(channels.desktopDevTools, noArgs, () => desktop.devTools());
-    window.on("closed", () => {
-        for (const channel of registered) ipcMain.removeHandler(channel);
-    });
 }

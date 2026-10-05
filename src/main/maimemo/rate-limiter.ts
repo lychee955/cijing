@@ -1,4 +1,5 @@
 import {ClientError} from "./errors";
+import {retryAfterDelay} from "../../shared/retry-after";
 
 // A conservative process-wide limiter; other clients still consume server quota.
 export class RateLimiter {
@@ -23,16 +24,10 @@ export class RateLimiter {
     }
 
     block(retryAfter: string | null): void {
-        const seconds = Number(retryAfter);
-        const delay =
-            retryAfter && Number.isFinite(seconds)
-                ? seconds * 1000
-                : retryAfter
-                  ? Date.parse(retryAfter) - this.now()
-                  : 10_000;
+        const delay = retryAfterDelay(retryAfter, this.now());
         this.blockedUntil = Math.max(
             this.blockedUntil,
-            this.now() + (Number.isFinite(delay) ? Math.max(1000, delay) : 10_000)
+            this.now() + (delay === undefined ? 10_000 : Math.max(1000, delay))
         );
     }
 }

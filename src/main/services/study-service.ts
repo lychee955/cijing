@@ -1,4 +1,4 @@
-import type {AddOutcome, AddState, Vocabulary} from "../../shared/models";
+import type {AddOutcome, AddState, HistoryEntry, Vocabulary} from "../../shared/models";
 import type {CredentialSnapshot} from "../storage/credential-store";
 import type {MaimemoClient} from "../maimemo/client";
 import {ClientError, publicError} from "../maimemo/errors";
@@ -53,12 +53,26 @@ export class StudyService {
     }
 
     confirm(credentials: CredentialSnapshot, word: Vocabulary, operationId?: string): Promise<AddOutcome> {
+        const entry = operationId ? this.operation(credentials, operationId, word.id) : undefined;
+        return this.confirmWord(credentials, word, entry);
+    }
+
+    confirmOperation(credentials: CredentialSnapshot, operationId: string): Promise<AddOutcome> {
+        const entry = this.operation(credentials, operationId);
+        return this.confirmWord(credentials, {id: entry.vocId, spelling: entry.spelling}, entry);
+    }
+
+    private operation(credentials: CredentialSnapshot, id: string, vocId?: string): HistoryEntry {
+        const entry = this.database.get(id);
+        if (!entry || entry.profileId !== credentials.profileId || (vocId !== undefined && entry.vocId !== vocId))
+            throw new ClientError("FORBIDDEN");
+        return entry;
+    }
+
+    private confirmWord(credentials: CredentialSnapshot, word: Vocabulary, entry?: HistoryEntry): Promise<AddOutcome> {
         const key = this.key(credentials, word);
         const running = this.pending.get(key);
         if (running) return running;
-        const entry = operationId ? this.database.get(operationId) : undefined;
-        if (operationId && (!entry || entry.profileId !== credentials.profileId || entry.vocId !== word.id))
-            throw new ClientError("FORBIDDEN");
         const previous = entry ? this.asOutcome(entry) : this.previous(credentials, word);
         return this.run(
             key,

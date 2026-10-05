@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {computed, onMounted, onUnmounted, ref} from "vue";
-import type {CredentialStatus} from "../../../shared/models";
 import AiSettings from "../components/AiSettings.vue";
 import {useSearchStore} from "../stores/search";
 import {useDesktopStore} from "../stores/desktop";
@@ -30,7 +29,7 @@ async function savePreferences(): Promise<void> {
     try {
         const result = await window.desktop.desktop.save({...preferences.value});
         preferencesMessage.value = result.ok ? "桌面设置已保存。" : result.error.message;
-        await desktop.refresh();
+        await desktop.refresh(true);
         if (!result.ok && desktop.status) preferences.value = {...desktop.status.settings};
     } catch {
         preferencesMessage.value = "无法保存桌面设置，请重试。";
@@ -53,7 +52,7 @@ function captureShortcut(event: KeyboardEvent): void {
         key
     ].join("+");
 }
-const status = ref<CredentialStatus>({configured: false, available: false});
+const status = computed(() => desktop.credentials);
 const token = ref("");
 const editing = ref(false);
 const isEditing = computed(() => !status.value.configured || editing.value);
@@ -106,7 +105,7 @@ async function toggleVisibility(): Promise<void> {
 }
 const message = ref("");
 const busy = ref(false);
-const loaded = ref(false);
+const loaded = computed(() => desktop.credentialsLoaded);
 const validating = ref(false);
 async function validateToken(saved = false): Promise<void> {
     validating.value = true;
@@ -122,7 +121,7 @@ async function validateToken(saved = false): Promise<void> {
         message.value = "暂时无法完成验证，请稍后重试。";
     } finally {
         validating.value = false;
-        await Promise.all([refresh(), desktop.refresh()]);
+        await desktop.refresh(true);
     }
 }
 async function revalidate(): Promise<void> {
@@ -135,12 +134,6 @@ async function revalidate(): Promise<void> {
     } finally {
         busy.value = false;
     }
-}
-async function refresh(): Promise<void> {
-    const result = await window.desktop.credentials.status();
-    if (result.ok) status.value = result.data;
-    else message.value = result.error.message;
-    loaded.value = true;
 }
 async function act(action: "save" | "clear" | "copy"): Promise<void> {
     if (busy.value) return;
@@ -163,8 +156,8 @@ async function act(action: "save" | "clear" | "copy"): Promise<void> {
                 token.value = "";
                 editing.value = false;
                 search.invalidate();
-                await Promise.all([refresh(), desktop.refresh()]);
                 if (action === "save") await validateToken(true);
+                else await desktop.refresh(true);
             }
         } else message.value = result.error.message;
     } catch {
@@ -175,9 +168,6 @@ async function act(action: "save" | "clear" | "copy"): Promise<void> {
 }
 onMounted(() => {
     window.addEventListener("blur", conceal);
-    void refresh().catch(() => {
-        message.value = "无法读取凭证状态。";
-    });
     void desktop.refresh().then(() => {
         if (desktop.status) preferences.value = {...desktop.status.settings};
     });
