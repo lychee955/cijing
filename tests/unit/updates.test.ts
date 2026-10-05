@@ -2,13 +2,7 @@ import {describe, expect, it, vi, afterEach} from "vitest";
 import {mkdtempSync, mkdirSync, writeFileSync, rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
-import {dump} from "js-yaml";
-import {
-    GithubReleaseSource,
-    UpdateFailure,
-    validateReleaseUrl,
-    validateMetadata
-} from "../../src/main/updates/release-source";
+import {UpdateFailure} from "../../src/main/updates/release-source";
 import {detectEnvironment} from "../../src/main/updates/environment";
 import {ExitGate} from "../../src/main/updates/exit-gate";
 import {UpdateService} from "../../src/main/updates/service";
@@ -24,162 +18,20 @@ const env: UpdateEnvironment = {
     canCheck: true,
     canInstall: true
 };
-const sha512 = Buffer.alloc(64, 1).toString("base64");
-function fixture(version = "0.10.0") {
-    const tag = `v${version}`,
-        name = `cijing-${version}-win-x64-setup.exe`;
-    const base = `https://github.com/lychee955/cijing/releases/download/${tag}/`;
-    const metadata = {
-        version,
-        path: name,
-        sha512,
-        files: [{url: name, sha512, size: 100}]
-    };
-    const release = {
-        tag_name: tag,
-        html_url: `https://github.com/lychee955/cijing/releases/tag/${tag}`,
-        draft: false,
-        prerelease: false,
-        published_at: "2026-10-03T00:00:00Z",
-        body: "<script>alert(1)</script>",
-        assets: [name, `${name}.blockmap`, `cijing-${version}-win-x64-portable.exe`, "latest.yml"].map((name) => ({
-            name,
-            size: 100,
-            browser_download_url: base + name
-        }))
-    };
-    const fetcher = vi.fn(async (url: string, init: RequestInit) => {
-        expect(init.headers).not.toHaveProperty("Authorization");
-        return new Response(url.endsWith("/latest") ? JSON.stringify(release) : dump(metadata));
-    });
-    const candidate: UpdateCandidate = {
-        version,
-        tag,
-        releaseUrl: release.html_url,
-        publishedAt: release.published_at,
-        notes: release.body,
-        assetName: name,
-        assetUrl: base + name,
-        size: 100,
-        sha512
-    };
-    return {
-        metadata,
-        release,
-        fetcher,
-        candidate,
-        source: new GithubReleaseSource(fetcher)
-    };
-}
-describe("release selection and completeness", () => {
-    it("uses semantic version ordering and pins assets to one release", async () => {
-        const f = fixture();
-        expect(await f.source.check(env)).toMatchObject({
-            phase: "available",
-            candidate: {version: "0.10.0", sha512}
-        });
-        expect(f.fetcher.mock.calls[1]![0]).toBe(
-            "https://github.com/lychee955/cijing/releases/download/v0.10.0/latest.yml"
-        );
-    });
-    it.each(["0.9.0", "0.8.9"])("does not update to equal or older %s", async (version) => {
-        expect(await fixture(version).source.check(env)).toMatchObject({
-            phase: "upToDate"
-        });
-    });
-    it.each(["draft", "prerelease"] as const)("does not offer %s releases", async (flag) => {
-        const f = fixture();
-        f.release[flag] = true;
-        await expect(f.source.check(env)).rejects.toThrow("非正式");
-    });
-    it.each(["0.10.0-beta.1", "0.10.0-snapshot.20261004.1"])(
-        "does not offer prerelease %s even if the API labels it stable",
-        async (version) => {
-            await expect(fixture(version).source.check(env)).rejects.toThrow("非正式");
-        }
-    );
-    it.each([{platform: "darwin"}, {arch: "arm64"}])("never offers mismatched platform or arch %o", async (patch) => {
-        expect(await fixture().source.check({...env, ...patch})).toMatchObject({
-            phase: "noCompatiblePackage"
-        });
-    });
-    it("selects portable separately, without assigning installer checksum", async () => {
-        const result = await fixture().source.check({
-            ...env,
-            installation: "portable",
-            canInstall: false
-        });
-        expect(result).toMatchObject({
-            phase: "available",
-            candidate: {assetName: "cijing-0.10.0-win-x64-portable.exe"}
-        });
-        if (result.phase === "available") expect(result.candidate.sha512).toBeUndefined();
-    });
-    it.each(["latest.yml", "cijing-0.10.0-win-x64-setup.exe.blockmap", "cijing-0.10.0-win-x64-portable.exe"])(
-        "rejects incomplete release missing %s",
-        async (name) => {
-            const f = fixture();
-            f.release.assets = f.release.assets.filter((a) => a.name !== name);
-            await expect(f.source.check(env)).rejects.toThrow("不完整");
-        }
-    );
-    it("distinguishes missing target from missing metadata", async () => {
-        const f = fixture();
-        f.release.assets = f.release.assets.filter((a) => !a.name.endsWith("setup.exe"));
-        expect(await f.source.check(env)).toMatchObject({
-            phase: "noCompatiblePackage"
-        });
-    });
-    it("rejects metadata referencing a different version, architecture or checksum", () => {
-        const {metadata, candidate} = fixture();
-        for (const patch of [
-            {version: "0.11.0"},
-            {path: "arm64.exe"},
-            {sha512: "wrong"},
-            {files: [{...metadata.files[0], size: 101}]},
-            {files: [...metadata.files, ...metadata.files]}
-        ])
-            expect(() => validateMetadata({...metadata, ...patch}, {...candidate}, env.systemVersion)).toThrow(
-                "不完整"
-            );
-    });
-    it("enforces minimum OS and refuses unknown metadata formats", () => {
-        const {metadata, candidate} = fixture();
-        expect(() =>
-            validateMetadata({...metadata, minimumSystemVersion: "11.0.0"}, candidate, env.systemVersion)
-        ).toThrow("更高");
-        expect(() => validateMetadata({...metadata, packages: {}}, candidate, env.systemVersion)).toThrow("不完整");
-    });
-    it.each([
-        "http://github.com/lychee955/cijing/releases/tag/v0.10.0",
-        "https://evil.test/",
-        "https://github.com/other/repo/releases/tag/v0.10.0",
-        "https://github.com/lychee955/cijing/releases/tag/v0.10.0?x=1"
-    ])("refuses untrusted release URL %s", (url) => {
-        expect(() => validateReleaseUrl(url, "v0.10.0")).toThrow();
-    });
-    it("maps offline, metadata 404 and rate limits to failures", async () => {
-        await expect(
-            new GithubReleaseSource(async () => {
-                throw new Error("secret");
-            }).check(env)
-        ).rejects.toThrow("网络");
-        const f = fixture();
-        await expect(
-            new GithubReleaseSource(async (url) =>
-                url.endsWith("/latest") ? new Response(JSON.stringify(f.release)) : new Response("", {status: 404})
-            ).check(env)
-        ).rejects.toThrow("无法确认");
-        await expect(
-            new GithubReleaseSource(
-                async () => new Response("", {status: 429, headers: {"retry-after": "120"}}),
-                () => 1000
-            ).check(env)
-        ).rejects.toMatchObject({retryAt: 121000});
-    });
-});
+const candidate: UpdateCandidate = {
+    version: "0.10.0",
+    tag: "v0.10.0",
+    releaseUrl: "https://github.com/lychee955/cijing/releases/tag/v0.10.0",
+    publishedAt: "2026-10-03T00:00:00Z",
+    notes: "新版",
+    assetName: "cijing-0.10.0-win-x64-setup.exe",
+    assetUrl: "https://github.com/lychee955/cijing/releases/download/v0.10.0/cijing-0.10.0-win-x64-setup.exe",
+    size: 100,
+    sha512: Buffer.alloc(64, 1).toString("base64")
+};
+
 function service() {
-    const f = fixture();
+    const f = {candidate};
     const source = {
         check: vi.fn(async () => ({
             phase: "available" as const,

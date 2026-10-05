@@ -2,7 +2,7 @@
 
 日期：2026-10-03。
 
-状态：已实施主进程更新服务、品牌区界面、Windows x64 打包与本地元数据校验。自动安装仍受签名和实机验收开关保护；当前代码为快照开发版 0.0.2-snapshot.20261004.1；真实旧版升级尚未验收，以 Pre-release 分发快照，尚无正式版。实施结果见 [UPDATE_RELEASE_ACCEPTANCE.md](UPDATE_RELEASE_ACCEPTANCE.md)，发布操作见 [RELEASING.md](RELEASING.md)。下文保留原设计与实施前基线。
+状态：已实施主进程更新服务、品牌区界面、Windows x64 打包与本地元数据校验。2026-10-05 更新检测改为读取源码仓库 `updates/stable.json`，检查阶段不再查询 GitHub Releases REST API 或 `latest.yml`；清单生成与公告流程见 [静态更新清单](../updates/README.md)。自动安装仍受签名和实机验收开关保护；当前代码为快照开发版 0.0.2-snapshot.20261004.1；真实旧版升级尚未验收，以 Pre-release 分发快照，尚无正式版。实施结果见 [UPDATE_RELEASE_ACCEPTANCE.md](UPDATE_RELEASE_ACCEPTANCE.md)，发布操作见 [RELEASING.md](RELEASING.md)。下文保留原设计与实施前基线，其中正式 Release API 检测方案已由静态清单替代。
 
 ## 1. 目标与范围
 

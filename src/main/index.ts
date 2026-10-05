@@ -22,7 +22,7 @@ import {createAiLogger} from "./ai/logging";
 import brand from "../shared/brand.json";
 import {DATABASE_FILENAME, resolveDataPath} from "./storage/data-path";
 import {detectEnvironment} from "./updates/environment";
-import {GithubReleaseSource} from "./updates/release-source";
+import {StaticManifestSource} from "./updates/release-source";
 import {UpdateService} from "./updates/service";
 import {NsisInstaller} from "./updates/adapters/nsis";
 import {ExitGate} from "./updates/exit-gate";
@@ -161,7 +161,7 @@ else {
                 canInstall: environment.canInstall
             });
             updates = new UpdateService(environment, {
-                source: new GithubReleaseSource((url, init) => net.fetch(url, init)),
+                source: new StaticManifestSource((url, init) => net.fetch(url, init)),
                 installer: environment.canInstall ? new NsisInstaller(environment) : undefined,
                 gate,
                 busy: () => account.busy || !!analysis?.busy,
